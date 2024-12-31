@@ -1,0 +1,5 @@
+#!/bin/sh
+
+mkdir -p /tmp/dnsmasq.d/
+cp /usr/share/mico/xiaomi_dns_server.conf /tmp/dnsmasq.d/
+/etc/init.d/dnsmasq restart

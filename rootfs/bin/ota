@@ -1,0 +1,424 @@
+#!/bin/sh
+
+OTA_ALL="mico_all.bin"
+OTA_ROOT="mico_firmware.bin"
+OTA_PATH="/tmp"
+OTA_FILE="/tmp/mico_ota.bin"
+OTA_MD5_FILE="$OTA_FILE.md5"
+ROOT_URL="http://api.miwifi.com/rs/grayupgrade"
+skr_model_list="LX05 L07A J01A"
+
+SILENT=0
+
+export LED_PARENT=ota
+
+mkdir -p "/tmp/status"
+
+LOG_TITLE=$0
+mico_points() {
+    logger -t $LOG_TITLE[$$] -p 3 "stat_points_none $*"
+}
+
+try_release_mem() {
+    local logsize
+
+    logger -t ota -p 3 "no enough space, stop some services."
+
+    if [ "L09B" = "$(micocfg_model)" ]; then
+        /etc/init.d/pns stop
+    else
+        /etc/init.d/pns stop
+        /etc/init.d/mediaplayer stop
+        /etc/init.d/miio stop
+        /etc/init.d/mico_aivs_lab stop
+        /etc/init.d/miplay stop
+        /etc/init.d/idmruntime stop
+    fi
+
+    [ -f /tmp/log/message.old ] && {
+        echo "" > /tmp/log/message.old
+    }
+
+    #try not to mess up log
+    [ -f /tmp/log/messages ] && {
+        logsize=`du -k /tmp/log/messages`
+        [ "$logsize" -gt "1000" ] && easy_logcut
+    }
+}
+
+clean_oldconfig() {
+    [ -f "/data/pns/wuw_chn.fcf" ] && rm /data/pns/wuw_chn.fcf
+}
+
+verify_upgrade() {
+    # package integrity verification is done by miso
+    return 0
+}
+
+check() {
+    set_upgrade_status "check"
+    matool_check_upgrade
+}
+
+battery_capacity_check() {
+    if [ "M03A" = "$(micocfg_model)" ]; then
+        battery_capacity=`cat /sys/class/power_supply/battery/capacity`
+        if [ -f /tmp/safety_capacity ]; then
+            safety_capacity=`cat /tmp/safety_capacity`
+        else
+            safety_capacity=20
+        fi
+        if [ $battery_capacity -gt $safety_capacity ]; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+adapter_check() {
+    if [ "L09B" = "$(micocfg_model)" ]; then
+        vbus_status=`cat /sys/devices/i2c-3/3-006b/vbus_status`
+    elif [ "M03A" = "$(micocfg_model)" ]; then
+        vbus_status=`cat /sys/class/power_supply/rt9467/online`
+    else 
+	return 0
+    fi
+    if [ "$vbus_status" = "1" ]; then
+        return 0
+    else
+        logger -t ota -p 3 "no adapter connected."
+        return 1
+    fi
+}
+
+donot_need_upgrade() {
+    set_upgrade_status "no_need"
+}
+
+upgrade_wake_unlock() {
+    if [ "M03A" = "$(micocfg_model)" ]; then
+        wakeup_lock=`cat /sys/power/wake_lock`
+        wakeup_unlock=`cat /sys/power/wake_unlock`
+        burn_lock="upgrade.burn.lock"
+        [ -z "${wakeup_lock##*$burn_lock*}" ] && {
+            if [ -z $wakeup_unlock ] || [ -n "${wakeup_unlock##*$burn_lock*}" ]; then
+                klogger "wake_unlock upgrade.burn.lock..."
+                echo $burn_lock > /sys/power/wake_unlock
+            fi
+        }
+    fi
+}
+
+upgrade_failed() {
+    [ -f $OTA_FILE ] && rm -f $OTA_FILE
+    [ -f /tmp/ota_flag ] && rm -f /tmp/ota_flag
+    upgrade_wake_unlock
+    sta_pns=`ps | grep mipns | grep -v grep | wc -l`
+    sta_player=`ps | grep mediaplayer | grep -v grep | wc -l`
+    sta_miio=`ps | grep miio | grep -v grep | wc -l`
+    set_upgrade_status "ota_failed"
+    do_led shut
+    if [ "L09B" = "$(micocfg_model)" -a $sta_pns = 0 ]; then
+        logger -t ota -p 3 "l09b ota failed, pns restart."
+        /etc/init.d/pns start    
+    fi
+    if [ $sta_pns = 0 -a $sta_player = 0 -a $sta_miio = 0 ]; then 
+        logger -t ota -p 3 "ota failed, need reboot right now."
+        easy_logcut
+        /usr/sbin/rotate_stat_points
+        sync
+        reboot -f
+    fi
+}
+
+
+download_upgrade() {
+    if [ -f $OTA_FILE ]; then
+        logger -t ota -p 3 "ota is in progress now, exit this one."
+        exit 1
+    fi
+    set_upgrade_status "download"
+    #TODO : Pause playback to prevent stuttering
+    if [ "L17A" = "$(micocfg_model)" ]; then
+        /usr/bin/mphelper pause
+    fi
+    wget -t3 -T30 "$1" -O $OTA_FILE
+    local ret=$?
+    [ $ret -eq 0 ] && {
+        return 0
+    }
+    local dns_lists="180.76.76.76 223.5.5.5 223.6.6.6"
+    dns_lists=$(echo $dns_lists | awk 'BEGIN{srand()}{for(i=1;i<=NF;i++) b[rand()NF]=$i}END{for(x in b)printf "%s ",b[x]}')
+    for DNS_SELECT in $dns_lists; do
+        logger -t ota -p 3 "download failed, use dns $DNS_SELECT and retry"
+        curl --connect-timeout 30 --dns-servers $DNS_SELECT "$1" -o $OTA_FILE
+        [ $? -eq 0 ] && {
+            mico_points "ota_download_success=predef_dns"
+            return 0
+        }
+    done
+    return 1
+}
+
+# make sure we have room for ota file
+predownload_cleanup() {
+    local size="$1"
+    local freemem
+    local needmem
+
+    echo 3 > /proc/sys/vm/drop_caches
+    freemem=`cat /proc/meminfo | grep MemFree | awk '{print $2}'`
+    # $size is in bytes. assume needed_memory=filesize+2MB
+    needmem=$(($size/1024 + 2048))
+    if [ "$freemem" -lt "$needmem" ]; then
+        try_release_mem
+    fi
+
+    #try again.
+    sync
+    echo 3 > /proc/sys/vm/drop_caches
+    freemem=`cat /proc/meminfo | grep MemFree | awk '{print $2}'`
+
+    if [ "$freemem" -lt "$needmem" ]; then
+        # log the problem and leave our fate to wget
+        logger -t ota -p 3 "not enough space.free=$freemem need=$needmem "
+        cat /proc/meminfo >> /var/log/messages
+    fi
+    return 0
+}
+
+version_check_no_need() {
+    if [ "LX01" == $model -o "S12A" == $model -o "S12" == $model ]; then
+        return 0
+    fi
+    return 1
+}
+
+version_format() {
+    echo "$@" | awk -F. '{ printf("%d%03d%03d\n", $1,$2,$3); }';
+}
+
+version_compare() {
+    if [ $(version_format $1) -ge $(version_format $2) ]; then
+        return 0
+    fi
+    return 1
+}
+
+version_check() {
+    local model
+    cd $OTA_PATH
+    model=$(micocfg_model)
+    logger -t ota -p 3 "model = $model"
+    if [ "LX06" = $model -o "L06A" = $model -o "L09A" = $model -o "L09B" = $model ]; then
+        miso -r -x $OTA_FILE -f "mico_version"
+        ver_new=$(cat mico_version | grep "option ROM" | cut -d ' ' -f 3 | sed $'s/\'//g')
+        rm -rf mico_version
+    elif [ "LX05A" = $model ]; then
+        miso -r -x $OTA_FILE -f "version"
+        ver_new=$(cat version | grep "option ROM" | cut -d ' ' -f 3 | sed $'s/\'//g')
+        rm -rf version
+    else
+        miso -r -x $OTA_FILE -f "system.cfg"
+        ver_new=$(micocfg_get system.cfg version)
+        rm -rf system.cfg
+    fi
+    cd -
+
+    ver_cur=$(micocfg_version)
+
+
+    logger -t ota -p 3 "version check.ver_cur=$ver_cur ver_new=$ver_new"
+
+    version_compare $ver_new $ver_cur
+    if [ "$?" != "0" ] ; then
+        logger -t ota -p 3 "ver_new < ver_cur"
+        return 1
+    fi
+    return 0
+}
+
+do_led() {
+    # we use L18 for upgrade LED ID from L17A
+    # refer to https://xiaomi.f.mioffice.cn/docs/dock4blBKIsj7tWFU3zjFJA5r2b
+
+    ID=18
+    list="MICO LX01 S12 S12A LX05 M01 LX05A LX06 L06A L07A L09A J01A L10A L09B L15A L16A M03A"
+    model=$(micocfg_model)
+
+    (echo $list | grep -w -q $model) && ID=2
+
+    if [ $1 == "show" ]; then
+        /bin/show_led $ID
+    else
+        /bin/shut_led $ID
+    fi
+}
+
+#check pid exist. prevent re-entry of ota
+upgrade_check_exist() {
+	pid_file="/tmp/pid_ota"
+	if [ -f $pid_file ]; then
+		exist_pid=`cat $pid_file`
+		if [ -n $exist_pid ]; then
+			kill -0 $exist_pid 2>/dev/null
+			if [ $? -eq 0 ]; then
+				return 1
+			else
+				echo $$ > $pid_file
+			fi
+		else
+			echo $$ > $pid_file
+		fi
+	else
+		echo $$ > $pid_file
+	fi
+
+	return 0
+}
+
+upgrade() {
+    if [ -z "$1" -o -z "$2" ]; then
+        upgrade_failed
+        return 1
+    fi
+
+    upgrade_check_exist
+    [ "$?" != "0" ] && {
+        logger -t ota -p 3 "Upgrading is exist, exit..."
+        return 1
+    }
+
+    mico_points "ota_start=$3"
+
+    [ $3 != "silent" ] && do_led show
+
+    predownload_cleanup "$2"
+
+    download_upgrade "$1"
+    if [ "$?" != "0" ] ; then
+        mico_points "ota_failed=download_failed"
+        upgrade_failed
+        return 1
+    fi
+
+    adapter_check
+    if [ "$?" != "0" ] ; then
+        if [ "M03A" = "$(micocfg_model)" ] ; then
+            battery_capacity_check
+            if [ "$?" != "0" ] ; then
+                mico_points "ota_failed=adapter_disconnect and low_power"
+                upgrade_failed
+                return 1
+            fi
+        else
+            mico_points "ota_failed=adapter_disconnect"
+            upgrade_failed
+            return 1
+        fi
+    fi
+
+    logger -t ota -p 3 "ota function = $3"
+    if [ "$3" = "query" -o "$3" = "silent" ]; then
+        version_check_no_need
+        if [ "$?" != "0" ] ; then
+            version_check
+            if [ "$?" != "0" ] ; then
+                mico_points "ota_failed=version_check_failed"
+                upgrade_failed
+                return 1
+            fi
+        fi
+    fi
+
+    clean_oldconfig
+    set_upgrade_status "burn"
+
+    touch /tmp/ota_flag
+    flash.sh $OTA_FILE "$SILENT" "$DNS_SELECT" > /dev/null
+    if [ "$?" != "0" ] ; then
+        mico_points "ota_failed=flash_failed"
+        upgrade_failed
+        return 1
+    fi
+
+    return 0
+}
+
+# $1 = file url
+# $2 = file md5
+# $3 = file size
+check_and_upgrade() {
+    if [ -z "$1" ]; then
+        set_upgrade_status "check"
+        result=$(matool_check_upgrade)
+        if [ $? -eq 0 ] ; then
+            url=$(echo "$result" | awk '{print $1}')
+            size=$(echo "$result" | awk '{print $2}')
+            upgrade "$url" "$size" "$4"
+        else
+            donot_need_upgrade
+        fi
+        return $?
+    else
+    # if size is not provided ("$3") , then assume the size is 30MB
+    # or 1MB for skr model
+        if [ -z "$3" ]; then
+            size=31457280
+            model=$(micocfg_model)
+            for get_model in $skr_model_list; do
+                if [ "$model" = "$get_model" ]; then
+                    size=1048576
+                    break
+                fi
+            done
+        else
+            size="$3"
+        fi
+        upgrade $1 "$size" "$4"
+    fi
+
+}
+
+slient_check_and_upgrade() {
+    logger -t ota_slient -p 3 "Checking OTA ..."
+    sn=$(micocfg_sn | tr -d '\n' | tail -c1)
+    day=$(date +%d | tail -c2)
+    MAXWAIT=3600
+    if [ "$sn" = "$day" ]; then
+        logger -t ota_slient -p 3 "Wait random start..."
+        # unix's $RANDOM doesn't work in OpenWRT's busybox shell
+        RANDOM=1$(expr substr "$(head -30 /dev/urandom | tr -dc "0123456789" | head -1)" 1 5)
+        SLEEP_TIME=$((RANDOM % MAXWAIT))
+        logger -t ota_slient -p 3 "Will sleep for $SLEEP_TIME seconds..."
+        sleep $SLEEP_TIME
+        logger -t ota_slient -p 3 "Wait random done..."
+        SILENT=1
+        check_and_upgrade "" "" "" "silent"
+    fi
+}
+
+case "$1" in
+    success)
+    mico_points "ota_success=1"
+    set_upgrade_status success
+    ;;
+    check)
+    check
+    ;;
+    ble)
+    # from query
+    check_and_upgrade "$2" "$3" "$4" "query"
+    ;;
+    upgrade)
+    # from app
+    check_and_upgrade "$2" "$3" "$4" "app"
+    ;;
+    test)
+    check_and_upgrade "$2" "$3" "$4" "test"
+    ;;
+    slient)
+    slient_check_and_upgrade
+    ;;
+    *)
+esac

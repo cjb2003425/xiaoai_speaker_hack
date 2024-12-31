@@ -1,0 +1,27 @@
+#!/bin/sh /etc/rc.common
+
+START=92
+
+USE_PROCD=1
+
+FILE_PATH_AW="/sys/class/i2c-dev/i2c-1/device/1-005c/sensorid"
+FILE_PATH_CS="/sys/class/i2c-dev/i2c-1/device/1-0050/sensorid"
+
+check_sensor_fw() {
+ 	sensor_id=$(mikey get button_sensorid)
+	for node in $FILE_PATH_CS $FILE_PATH_AW; do
+		if [ -f $node ]; then
+			echo -n $sensor_id > $node
+			[ $? -eq 0 ] && ( echo "$sensor_id  $node success" )
+		fi
+	done
+}
+
+
+start_service() {
+  procd_open_instance
+  procd_set_param command /bin/touchpad
+  procd_set_param respawn 3600 5 0
+  procd_close_instance
+  check_sensor_fw
+}

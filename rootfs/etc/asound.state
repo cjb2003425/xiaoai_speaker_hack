@@ -1,0 +1,2458 @@
+state.AMLAXGSOUND {
+	control.1 {
+		iface MIXER
+		name 'Ch1 Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.2 {
+		iface MIXER
+		name 'Ch2 Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.3 {
+		iface MIXER
+		name 'Hard Mute'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.4 {
+		iface MIXER
+		name 'Low Volume Eq'
+		value 0
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+		}
+	}
+	control.5 {
+		iface MIXER
+		name 'Mid Volume Eq'
+		value 0
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+		}
+	}
+	control.6 {
+		iface MIXER
+		name 'High Volume Eq'
+		value 0
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+		}
+	}
+	control.7 {
+		iface MIXER
+		name 'PDM Filter Mode'
+		value 'Filter Mode 1'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Filter Mode 0'
+			item.1 'Filter Mode 1'
+			item.2 'Filter Mode 2'
+			item.3 'Filter Mode 3'
+			item.4 'Filter Mode 4'
+		}
+	}
+	control.8 {
+		iface MIXER
+		name 'HCIC shift gain from coeff'
+		value 'keep with coeff'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'keep with coeff'
+			item.1 'shift with -0x4'
+		}
+	}
+	control.9 {
+		iface MIXER
+		name 'pdm dclk'
+		value 'pdm dclk 3.072m, support 8k/16k/32k/48k'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'pdm dclk 3.072m, support 8k/16k/32k/48k'
+			item.1 'pdm dclk 1.024m, support 8k/16k'
+			item.2 'pdm dclk   768k, support 8k/16k'
+		}
+	}
+	control.10 {
+		iface MIXER
+		name 'Loopback Enable'
+		value Enable
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Disable
+			item.1 Enable
+		}
+	}
+	control.11 {
+		iface MIXER
+		name 'Loopback datain source'
+		value PDMIN
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 TDMIN_A
+			item.1 TDMIN_B
+			item.2 TDMIN_C
+			item.3 SPDIFIN
+			item.4 PDMIN
+		}
+	}
+	control.12 {
+		iface MIXER
+		name 'Loopback tmdin lb source'
+		value TDMOUT_B
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 TDMOUT_A
+			item.1 TDMOUT_B
+			item.2 TDMOUT_C
+			item.3 TDMIN_A
+			item.4 TDMIN_B
+			item.5 TDMIN_C
+		}
+	}
+	control.13 {
+		iface PCM
+		name 'TDMIN_A Ch0 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.14 {
+		iface PCM
+		name 'TDMIN_A Ch1 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.15 {
+		iface PCM
+		name 'TDMIN_A Ch2 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.16 {
+		iface PCM
+		name 'TDMIN_A Ch3 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.17 {
+		iface PCM
+		name 'TDMIN_A Ch4 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.18 {
+		iface PCM
+		name 'TDMIN_A Ch5 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.19 {
+		iface PCM
+		name 'TDMIN_A Ch6 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.20 {
+		iface PCM
+		name 'TDMIN_A Ch7 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.21 {
+		iface PCM
+		name 'TDMIN_A Lane0 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.22 {
+		iface PCM
+		name 'TDMIN_A Lane1 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.23 {
+		iface PCM
+		name 'TDMIN_A Lane2 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.24 {
+		iface PCM
+		name 'TDMIN_A Lane3 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.25 {
+		iface PCM
+		name 'TDMIN_A MUTE_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.26 {
+		iface PCM
+		name 'TDMIN_A Lane0 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.27 {
+		iface PCM
+		name 'TDMIN_A Lane1 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.28 {
+		iface PCM
+		name 'TDMIN_A Lane2 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.29 {
+		iface PCM
+		name 'TDMIN_A Lane3 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.30 {
+		iface PCM
+		name 'TDMIN_B Ch0 Swap'
+		value 'Swap To Lane1 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.31 {
+		iface PCM
+		name 'TDMIN_B Ch1 Swap'
+		value 'Swap To Lane1 Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.32 {
+		iface PCM
+		name 'TDMIN_B Ch2 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.33 {
+		iface PCM
+		name 'TDMIN_B Ch3 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.34 {
+		iface PCM
+		name 'TDMIN_B Ch4 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.35 {
+		iface PCM
+		name 'TDMIN_B Ch5 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.36 {
+		iface PCM
+		name 'TDMIN_B Ch6 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.37 {
+		iface PCM
+		name 'TDMIN_B Ch7 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.38 {
+		iface PCM
+		name 'TDMIN_B Lane0 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.39 {
+		iface PCM
+		name 'TDMIN_B Lane1 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.40 {
+		iface PCM
+		name 'TDMIN_B Lane2 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.41 {
+		iface PCM
+		name 'TDMIN_B Lane3 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.42 {
+		iface PCM
+		name 'TDMIN_B MUTE_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.43 {
+		iface PCM
+		name 'TDMIN_B Lane0 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.44 {
+		iface PCM
+		name 'TDMIN_B Lane1 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.45 {
+		iface PCM
+		name 'TDMIN_B Lane2 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.46 {
+		iface PCM
+		name 'TDMIN_B Lane3 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.47 {
+		iface PCM
+		name 'TDMIN_C Ch0 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.48 {
+		iface PCM
+		name 'TDMIN_C Ch1 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.49 {
+		iface PCM
+		name 'TDMIN_C Ch2 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.50 {
+		iface PCM
+		name 'TDMIN_C Ch3 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.51 {
+		iface PCM
+		name 'TDMIN_C Ch4 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.52 {
+		iface PCM
+		name 'TDMIN_C Ch5 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.53 {
+		iface PCM
+		name 'TDMIN_C Ch6 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.54 {
+		iface PCM
+		name 'TDMIN_C Ch7 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.55 {
+		iface PCM
+		name 'TDMIN_C Lane0 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.56 {
+		iface PCM
+		name 'TDMIN_C Lane1 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.57 {
+		iface PCM
+		name 'TDMIN_C Lane2 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.58 {
+		iface PCM
+		name 'TDMIN_C Lane3 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.59 {
+		iface PCM
+		name 'TDMIN_C MUTE_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.60 {
+		iface PCM
+		name 'TDMIN_C Lane0 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.61 {
+		iface PCM
+		name 'TDMIN_C Lane1 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.62 {
+		iface PCM
+		name 'TDMIN_C Lane2 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.63 {
+		iface PCM
+		name 'TDMIN_C Lane3 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.64 {
+		iface PCM
+		name 'TDMIN_LB Ch0 Swap'
+		value 'Swap To Lane0 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.65 {
+		iface PCM
+		name 'TDMIN_LB Ch1 Swap'
+		value 'Swap To Lane0 Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.66 {
+		iface PCM
+		name 'TDMIN_LB Ch2 Swap'
+		value 'Swap To Lane1 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.67 {
+		iface PCM
+		name 'TDMIN_LB Ch3 Swap'
+		value 'Swap To Lane1 Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.68 {
+		iface PCM
+		name 'TDMIN_LB Ch4 Swap'
+		value 'Swap To Lane2 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.69 {
+		iface PCM
+		name 'TDMIN_LB Ch5 Swap'
+		value 'Swap To Lane2 Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.70 {
+		iface PCM
+		name 'TDMIN_LB Ch6 Swap'
+		value 'Swap To Lane3 Left Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.71 {
+		iface PCM
+		name 'TDMIN_LB Ch7 Swap'
+		value 'Swap To Lane3 Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To Lane0 Left Channel'
+			item.1 'Swap To Lane0 Right Channel'
+			item.2 'Swap To Lane1 Left Channel'
+			item.3 'Swap To Lane1 Right Channel'
+			item.4 'Swap To Lane2 Left Channel'
+			item.5 'Swap To Lane2 Right Channel'
+			item.6 'Swap To Lane3 Left Channel'
+			item.7 'Swap To Lane3 Right Channel'
+		}
+	}
+	control.72 {
+		iface PCM
+		name 'TDMIN_LB Lane0 Channel Mask'
+		value 3
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.73 {
+		iface PCM
+		name 'TDMIN_LB Lane1 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.74 {
+		iface PCM
+		name 'TDMIN_LB Lane2 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.75 {
+		iface PCM
+		name 'TDMIN_LB Lane3 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.76 {
+		iface PCM
+		name 'TDMIN_LB MUTE_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.77 {
+		iface PCM
+		name 'TDMIN_LB Lane0 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.78 {
+		iface PCM
+		name 'TDMIN_LB Lane1 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.79 {
+		iface PCM
+		name 'TDMIN_LB Lane2 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.80 {
+		iface PCM
+		name 'TDMIN_LB Lane3 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.81 {
+		iface PCM
+		name 'TDMOUT_A Lane0 Left Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.82 {
+		iface PCM
+		name 'TDMOUT_A Lane0 Right Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.83 {
+		iface PCM
+		name 'TDMOUT_A Lane1 Left Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.84 {
+		iface PCM
+		name 'TDMOUT_A Lane1 Right Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.85 {
+		iface PCM
+		name 'TDMOUT_A Lane2 Left Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.86 {
+		iface PCM
+		name 'TDMOUT_A Lane2 Right Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.87 {
+		iface PCM
+		name 'TDMOUT_A Lane3 Left Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.88 {
+		iface PCM
+		name 'TDMOUT_A Lane3 Right Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.89 {
+		iface PCM
+		name 'TDMOUT_A Lane0 MASK_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.90 {
+		iface PCM
+		name 'TDMOUT_A Lane0 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.91 {
+		iface PCM
+		name 'TDMOUT_A Lane1 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.92 {
+		iface PCM
+		name 'TDMOUT_A Lane2 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.93 {
+		iface PCM
+		name 'TDMOUT_A Lane3 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.94 {
+		iface PCM
+		name 'TDMOUT_A GAIN Enable'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.95 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH0'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.96 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH1'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.97 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH2'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.98 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH3'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.99 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH4'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.100 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH5'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.101 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH6'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.102 {
+		iface PCM
+		name 'TDMOUT_A GAIN CH7'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.103 {
+		iface PCM
+		name 'TDMOUT_A MUTE_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.104 {
+		iface PCM
+		name 'TDMOUT_A Lane0 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.105 {
+		iface PCM
+		name 'TDMOUT_A Lane1 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.106 {
+		iface PCM
+		name 'TDMOUT_A Lane2 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.107 {
+		iface PCM
+		name 'TDMOUT_A Lane3 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.108 {
+		iface PCM
+		name 'TDMOUT_A Lane0 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane0 Mix Left and Right Channel'
+		}
+	}
+	control.109 {
+		iface PCM
+		name 'TDMOUT_A Lane1 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane1 Mix Left and Right Channel'
+		}
+	}
+	control.110 {
+		iface PCM
+		name 'TDMOUT_A Lane2 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane2 Mix Left and Right Channel'
+		}
+	}
+	control.111 {
+		iface PCM
+		name 'TDMOUT_A Lane3 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane3 Mix Left and Right Channel'
+		}
+	}
+	control.112 {
+		iface PCM
+		name 'TDMOUT_B Lane0 Left Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.113 {
+		iface PCM
+		name 'TDMOUT_B Lane0 Right Channel Swap'
+		value 'Swap To CH1'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.114 {
+		iface PCM
+		name 'TDMOUT_B Lane1 Left Channel Swap'
+		value 'Swap To CH2'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.115 {
+		iface PCM
+		name 'TDMOUT_B Lane1 Right Channel Swap'
+		value 'Swap To CH3'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.116 {
+		iface PCM
+		name 'TDMOUT_B Lane2 Left Channel Swap'
+		value 'Swap To CH4'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.117 {
+		iface PCM
+		name 'TDMOUT_B Lane2 Right Channel Swap'
+		value 'Swap To CH5'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.118 {
+		iface PCM
+		name 'TDMOUT_B Lane3 Left Channel Swap'
+		value 'Swap To CH6'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.119 {
+		iface PCM
+		name 'TDMOUT_B Lane3 Right Channel Swap'
+		value 'Swap To CH7'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.120 {
+		iface PCM
+		name 'TDMOUT_B Lane0 MASK_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.121 {
+		iface PCM
+		name 'TDMOUT_B Lane0 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.122 {
+		iface PCM
+		name 'TDMOUT_B Lane1 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.123 {
+		iface PCM
+		name 'TDMOUT_B Lane2 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.124 {
+		iface PCM
+		name 'TDMOUT_B Lane3 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.125 {
+		iface PCM
+		name 'TDMOUT_B GAIN Enable'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.126 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH0'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.127 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH1'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.128 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH2'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.129 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH3'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.130 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH4'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.131 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH5'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.132 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH6'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.133 {
+		iface PCM
+		name 'TDMOUT_B GAIN CH7'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.134 {
+		iface PCM
+		name 'TDMOUT_B MUTE_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.135 {
+		iface PCM
+		name 'TDMOUT_B Lane0 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.136 {
+		iface PCM
+		name 'TDMOUT_B Lane1 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.137 {
+		iface PCM
+		name 'TDMOUT_B Lane2 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.138 {
+		iface PCM
+		name 'TDMOUT_B Lane3 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.139 {
+		iface PCM
+		name 'TDMOUT_B Lane0 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane0 Mix Left and Right Channel'
+		}
+	}
+	control.140 {
+		iface PCM
+		name 'TDMOUT_B Lane1 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane1 Mix Left and Right Channel'
+		}
+	}
+	control.141 {
+		iface PCM
+		name 'TDMOUT_B Lane2 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane2 Mix Left and Right Channel'
+		}
+	}
+	control.142 {
+		iface PCM
+		name 'TDMOUT_B Lane3 Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane3 Mix Left and Right Channel'
+		}
+	}
+	control.143 {
+		iface PCM
+		name 'TDMOUT_C Lane0 Left Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.144 {
+		iface PCM
+		name 'TDMOUT_C Lane0 Right Channel Swap'
+		value 'Swap To CH1'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.145 {
+		iface PCM
+		name 'TDMOUT_C Lane1 Left Channel Swap'
+		value 'Swap To CH2'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.146 {
+		iface PCM
+		name 'TDMOUT_C Lane1 Right Channel Swap'
+		value 'Swap To CH3'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.147 {
+		iface PCM
+		name 'TDMOUT_C Lane2 Left Channel Swap'
+		value 'Swap To CH4'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.148 {
+		iface PCM
+		name 'TDMOUT_C Lane2 Right Channel Swap'
+		value 'Swap To CH5'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.149 {
+		iface PCM
+		name 'TDMOUT_C Lane3 Left Channel Swap'
+		value 'Swap To CH6'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.150 {
+		iface PCM
+		name 'TDMOUT_C Lane3 Right Channel Swap'
+		value 'Swap To CH7'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.151 {
+		iface PCM
+		name 'TDMOUT_C Lane0 MASK_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.152 {
+		iface PCM
+		name 'TDMOUT_C Lane0 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.153 {
+		iface PCM
+		name 'TDMOUT_C Lane1 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.154 {
+		iface PCM
+		name 'TDMOUT_C Lane2 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.155 {
+		iface PCM
+		name 'TDMOUT_C Lane3 Channel Mask'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.156 {
+		iface PCM
+		name 'TDMOUT_C GAIN Enable'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.157 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH0'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.158 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH1'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.159 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH2'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.160 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH3'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.161 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH4'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.162 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH5'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.163 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH6'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.164 {
+		iface PCM
+		name 'TDMOUT_C GAIN CH7'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 255'
+		}
+	}
+	control.165 {
+		iface PCM
+		name 'TDMOUT_C MUTE_VAL'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.166 {
+		iface PCM
+		name 'TDMOUT_C Lane0 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.167 {
+		iface PCM
+		name 'TDMOUT_C Lane1 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.168 {
+		iface PCM
+		name 'TDMOUT_C Lane2 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.169 {
+		iface PCM
+		name 'TDMOUT_C Lane3 Mute Channel'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.170 {
+		iface PCM
+		name 'TDMOUT_C Lane0 Mixer Channel'
+		value 'Lane0 Mix Left and Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane0 Mix Left and Right Channel'
+		}
+	}
+	control.171 {
+		iface PCM
+		name 'TDMOUT_C Lane1 Mixer Channel'
+		value 'Lane1 Mix Left and Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane1 Mix Left and Right Channel'
+		}
+	}
+	control.172 {
+		iface PCM
+		name 'TDMOUT_C Lane2 Mixer Channel'
+		value 'Lane2 Mix Left and Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane2 Mix Left and Right Channel'
+		}
+	}
+	control.173 {
+		iface PCM
+		name 'TDMOUT_C Lane3 Mixer Channel'
+		value 'Lane3 Mix Left and Right Channel'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane3 Mix Left and Right Channel'
+		}
+	}
+	control.174 {
+		iface MIXER
+		name 'SPDIFIN Sample Rate'
+		value 7
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 '24000'
+			item.1 '32000'
+			item.2 '44100'
+			item.3 '46000'
+			item.4 '48000'
+			item.5 '96000'
+			item.6 '192000'
+		}
+	}
+	control.175 {
+		iface PCM
+		name 'SPDIFIN Channel Status'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.176 {
+		iface PCM
+		name 'SPDIFOUT Lane0 Left Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.177 {
+		iface PCM
+		name 'SPDIFOUT Lane0 Right Channel Swap'
+		value 'Swap To CH0'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Swap To CH0'
+			item.1 'Swap To CH1'
+			item.2 'Swap To CH2'
+			item.3 'Swap To CH3'
+			item.4 'Swap To CH4'
+			item.5 'Swap To CH5'
+			item.6 'Swap To CH6'
+			item.7 'Swap To CH7'
+		}
+	}
+	control.178 {
+		iface PCM
+		name 'SPDIFOUT Mixer Channel'
+		value 'Disable Mix'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'Disable Mix'
+			item.1 'Lane0 Mix Left and Right Channel'
+		}
+	}
+	control.179 {
+		iface PCM
+		name 'SPDIFOUT Channel Status'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - -1'
+		}
+	}
+	control.180 {
+		iface MIXER
+		name mysoftvol
+		value.0 225
+		value.1 225
+		comment {
+			access 'read write user'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			tlv '00000001000000080000000000000014'
+			dbmin 0
+			dbmax 5100
+			dbvalue.0 4500
+			dbvalue.1 4500
+		}
+	}
+	control.181 {
+		iface MIXER
+		name notifyvol
+		value.0 225
+		value.1 225
+		comment {
+			access 'read write user'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			tlv '00000001000000080000000000000014'
+			dbmin 0
+			dbmax 5100
+			dbvalue.0 4500
+			dbvalue.1 4500
+		}
+	}
+	control.182 {
+		iface MIXER
+		name bluetooth
+		value.0 150
+		value.1 150
+		comment {
+			access 'read write user'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			tlv '00000001000000080000000000000027'
+			dbmin 0
+			dbmax 9945
+			dbvalue.0 5850
+			dbvalue.1 5850
+		}
+	}
+}

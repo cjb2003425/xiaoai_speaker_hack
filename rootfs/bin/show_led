@@ -1,0 +1,50 @@
+#!/bin/sh
+#!!!!!!Don't delete log,which is changed pthread_cancel sequence
+case "$0" in
+    *show_led)
+	mode="show"
+    ;;
+    *shut_led)
+	mode="shut"
+    ;;
+esac
+
+[ ! -z $LED_PARENT ] && logger -t ledserver -p 3 "$LED_PARENT call $0 $*"
+#export LED_PARENT=
+
+if [ "$mode" = "show" ]; then
+    si_flag=`cat /tmp/silent.flag`
+    if [ "$si_flag" = "1" ]; then
+        logger -t ledserver -p 3 "silent boot"
+    else
+        case "$1" in
+	    "c")
+	        ubus -t 1 call led shut
+	        logger -t ledserver -p 3 "ubus shut1"
+	        ;;
+	    "8")
+	        OP="$1"
+	        RGB="$2"
+	        ubus -t 1 call led show "{\"L\":$OP, \"rgb\":\"$RGB\"}"
+	        logger -t ledserver -p 3 "ubus show1 $OP"
+	        ;;
+	    *)
+	        OP="$1"
+	        POS="$2"
+	        if [ -n "$POS" ]; then
+		    ubus -t 1 call led show "{\"L\":$OP,\"pos\":$POS}"
+		    logger -t ledserver -p 3 "ubus show2 $OP"
+	        else
+		    ubus -t 1 call led show "{\"L\":$OP}"
+		    logger -t ledserver -p 3 "ubus show3 $OP"
+	        fi
+	        ;;
+        esac
+    fi
+else
+    OP="$1"
+    ubus -t 1 call led shut "{\"L\":$OP}"
+    logger -t ledserver -p 3 "ubus shut2 $OP"
+fi
+
+

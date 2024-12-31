@@ -1,0 +1,13 @@
+key_file = /usr/share/mico/messaging/serverkey_2.pub
+push_channel = xqpc
+config_url = https://tw.api2.mina.mi.com/brokerlist/config
+config_tls_url = https://sg.broker.mina.mi.com/miwifi-broker/tls
+register_device_url = https://tw.api2.mina.mi.com/brokerlist/register_device
+micoapi_url = https://tw.api2.mina.mi.com
+miwifiapi_url = https://tw.api.miwifi.com
+miwifilog_url = https://tw.log.miwifi.com
+timesync_url = http://tw.api2.mina.mi.com/ping/time
+didi_url = https://api.xiaojukeji.com
+micolbs_url = https://tw.lbs.mina.mi.com
+mico_userprofile_url = https://tw.userprofile.mina.mi.com
+mico_cmcc_url = https://cmcc.mina.mi.com

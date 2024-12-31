@@ -1,0 +1,26 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+START=95
+boot() {
+	mount_root done
+	rm -f /sysupgrade.tgz
+
+	# process user commands
+	[ -f /etc/rc.local ] && {
+		sh /etc/rc.local
+	}
+
+	boot_failcnt=`fw_env -g boot_failcnt 2>/dev/null`
+	[ "$boot_failcnt" != "0" ] && {
+		fw_env -s boot_failcnt 0
+	}
+
+	echo 1200000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+
+	echo 0 4 0 7 > /proc/sys/kernel/printk
+
+	sleep 1
+	/etc/init.d/wireless boot_done
+
+}

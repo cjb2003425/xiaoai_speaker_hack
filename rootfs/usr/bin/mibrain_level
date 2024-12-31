@@ -1,0 +1,25 @@
+#!/bin/sh
+
+conf="/data/mibrain/level"
+
+case "$1" in
+    "get")
+	if [ -f $conf ]; then
+	    level=`cat $conf`
+	else
+	    level="product"
+	fi
+	echo "{\"level\":\"$level\"}"
+	;;
+    preview|preview4test|product)
+	echo "$1" > $conf
+	ubus call mibrain aivs_env_switch > /dev/null 2>&1
+	/etc/init.d/pns restart
+	;;
+    list)
+	echo "{\"level\":[\"preview\",\"preview4test\",\"product\"]}"
+	;;
+    *)
+	echo "set_mibrain_level [preview|preview4test|product|get|list]"
+	;;
+esac

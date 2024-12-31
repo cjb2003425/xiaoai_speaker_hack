@@ -1,0 +1,6 @@
+bluetooth
+rfcomm
+bnep
+hidp
+hci_uart
+btusb

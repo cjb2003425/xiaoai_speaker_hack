@@ -1,0 +1,94 @@
+#!/bin/sh
+
+
+TIMEOUT=5
+#MPATH="mdplay"
+#METHOD="get_mdplay_status"
+
+mico_log() {
+    logger -t stereo_helper[$$] -p 3 "$*"  &> /dev/null &
+}
+
+source /usr/share/libubox/jshn.sh
+
+# desc
+# STEREO_SERVER/STEREO_CLIENT/MULTIROOM_SERVER/MULTIROOM_CLIENT
+#
+mdplay_get_desc()
+{
+    result=$(ubus -t $TIMEOUT call mdplay get_mdplay_status 2>/dev/null)
+    [ x"$result" == x"" ] && {
+        echo "service not found!"
+        return
+    }
+    json_init
+    json_load "$result"
+    json_get_var _type type
+    json_get_var _status status
+    json_cleanup
+    if [ "$_type" == "0" ] && [ "$_status" == "0" ] ; then
+        echo "NORMAL"
+    elif [ "$_type" == "1" ] && [ "$_status" == "1" ] ; then
+        echo "STEREO_SERVER"
+    elif [ "$_type" == "1" ] && [ "$_status" == "2" ] ; then
+        echo "STEREO_CLIENT"
+    elif [ "$_type" == "2" ] && [ "$_status" == "1" ] ; then
+        echo "MULTIROOM_SERVER"
+    elif [ "$_type" == "2" ] && [ "$_status" == "2" ] ; then
+        echo "MULTIROOM_CLIENT"
+    fi
+}
+
+# SERVER/CLIENT
+mdplay_get_status()
+{
+    result=$(ubus -t $TIMEOUT call mdplay get_mdplay_status 2>/dev/null)
+    [ x"$result" == x"" ] && {
+        echo "service not found!"
+        return
+    }
+    json_init
+    json_load "$result"
+    json_get_var _status status
+    json_cleanup
+    if [ "$_status" == "0" ] ; then
+        echo "NORMAL"
+    elif [ "$_status" == "1" ] ; then
+        echo "SERVER"
+    elif [ "$_status" == "2" ] ; then
+        echo "CLIENT"
+    fi
+}
+
+# STEREO/MULTIROOM
+mdplay_get_type()
+{
+    result=$(ubus -t $TIMEOUT call mdplay get_mdplay_status 2>/dev/null)
+    [ x"$result" == x"" ] && {
+        echo "service not found!"
+        return
+    }
+    json_init
+    json_load "$result"
+    json_get_var _type type
+    json_cleanup
+    if [ "$_type" == "0" ] ; then
+        echo "NORMAL"
+    elif [ "$_type" == "1" ] ; then
+        echo "STEREO"
+    elif [ "$_type" == "2" ] ; then
+        echo "MULTIROOM"
+    fi
+}
+
+case "$1" in
+    status)
+        mdplay_get_status
+        ;;
+    type)
+        mdplay_get_type
+        ;;
+    desc)
+        mdplay_get_desc
+        ;;
+esac

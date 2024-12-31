@@ -1,0 +1,67 @@
+{
+    "services": [
+        {
+            "appuuid": "0x0001",
+            "uuid": "8CBEBE01-0001-0002-0003-010203040506",
+            "primary": "1",
+            "Characteristics": [
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040510",
+                    "desc": "0",
+                    "perm": "0x10",
+                    "property": "0x8",
+                    "func_key": "encrypted_key_get_write"
+                },
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040511",
+                    "desc": "0",
+                    "perm": "0x1",
+                    "property": "0x10",
+                    "func_key": "encrypted_key_get_ind"
+                },
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040512",
+                    "desc": "0",
+                    "perm": "0x10",
+                    "property": "0x8",
+                    "func_key": "wifi_init_encrypted_write"
+                },
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040513",
+                    "desc": "0",
+                    "perm": "0x1",
+                    "property": "0x10",
+                    "func_key": "wifi_init_encrypted_ind"
+                },
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040514",
+                    "desc": "0",
+                    "perm": "0x10",
+                    "property": "0x8",
+                    "func_key": "rom_version_get_write"
+                },
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040515",
+                    "desc": "0",
+                    "perm": "0x1",
+                    "property": "0x10",
+                    "func_key": "rom_version_get_ind"
+                },
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040516",
+                    "desc": "0",
+                    "perm": "0x10",
+                    "property": "0x8",
+                    "func_key": "rom_log_get_write"
+                },
+                {
+                    "uuid": "8CBEBE01-0001-0002-0003-010203040517",
+                    "desc": "0",
+                    "perm": "0x1",
+                    "property": "0x10",
+                    "func_key": "rom_log_get_ind"
+                }
+            ]
+        }
+    ]
+}

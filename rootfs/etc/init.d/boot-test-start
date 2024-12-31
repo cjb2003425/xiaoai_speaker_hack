@@ -1,0 +1,18 @@
+#!/bin/sh /etc/rc.common
+START=10
+STOP=98
+
+boot()
+{
+    channel=`micocfg_channel 2>/dev/null`
+    [ "$channel" == "release" ] && {
+        return 0
+    }
+
+    [ ! -f /data/auto_test/start.sh ] && {
+        return 0
+    }
+
+    chmod +x /data/auto_test/start.sh
+    /data/auto_test/start.sh &
+}

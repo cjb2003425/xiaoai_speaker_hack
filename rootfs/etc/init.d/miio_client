@@ -1,0 +1,29 @@
+#!/bin/sh /etc/rc.common
+
+START=62
+USE_PROCD=1
+
+MIIO_MSC_SUPPORT=0
+
+[ "$(micocfg_miot_mjac_se_support)" = "true" ] && {
+    MIIO_MSC_SUPPORT=1
+}
+
+LOG_TITLE=$0
+mico_log() {
+    logger -t $LOG_TITLE[$$] -p 3 "$*"
+}
+
+# -n 126 means use 126*2*4k memory
+#ConCurrent 126devices
+start_service() {
+    mico_log "restart miio ot 4.0"
+    procd_open_instance
+    local _ot_extra_cmd=""
+    [ $MIIO_MSC_SUPPORT -eq 1 ] && {
+        _ot_extra_cmd="-o MSC"
+    }
+    procd_set_param command /usr/bin/miio_client -l 0 -n 126 -d /tmp/ -o DISABLE_PSM $_ot_extra_cmd
+    procd_set_param respawn 3600 5 0
+    procd_close_instance
+}

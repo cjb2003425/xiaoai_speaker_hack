@@ -1,0 +1,25 @@
+#!/bin/sh /etc/rc.common
+
+#before wireless
+# START=75
+# STOP=30
+
+USE_PROCD=1
+
+PROG1=/usr/bin/bluealsa-aplay
+
+function bluealsa_start() {
+
+	procd_open_instance
+	procd_set_param command "$PROG1" 00:00:00:00:00:00 -vv -i hci0 -d default --profile-a2dp --stereo-audio
+	procd_set_param respawn
+	procd_append_param respawn 3600
+	procd_append_param respawn 5
+	procd_append_param respawn 5
+	procd_close_instance
+}
+
+start_service() {
+	echo "bluealsa_start"
+	bluealsa_start
+}

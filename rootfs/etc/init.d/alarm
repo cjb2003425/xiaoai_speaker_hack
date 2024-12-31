@@ -1,0 +1,136 @@
+#!/bin/sh /etc/rc.common
+
+START=70
+
+USE_PROCD=1
+EXTRA_COMMANDS="sync"
+
+alarm_log() {
+    logger -t /etc/init.d/alarm[$$] -p 3 "$*"
+    #echo $*
+}
+
+ORI_DIR="/etc/workday"
+DEST_DIR="/data/workday"
+FILE_HOLIDAY="unnomal_holiday.cfg"
+FILE_WORKDAY="unnomal_workday.cfg"
+
+country=$(micocfg_country)
+file_ext="."$country
+[ "$country" == "CN" ] && {
+    alarm_log "country is CN"
+    file_ext=""
+}
+
+sync_failed()
+{
+    rm -rf /tmp/$FILE_HOLIDAY 1>/dev/null 2>/dev/null
+    rm -rf /tmp/$FILE_WORKDAY 1>/dev/null 2>/dev/null
+    json_cleanup 1>/dev/null 2>/dev/null
+    alarm_log "$1"
+    #echo "$1"
+    exit 1;
+}
+
+sync()
+{
+    local holiday_version=$(cat $DEST_DIR/version)
+    result_str=$(matool_get_work_day_config ${holiday_version:-6} 2>/dev/null)
+    [ "${result_str}" == "Config not changed" ] && {
+        sync_failed "holiday config not changed"
+    }
+
+    source /usr/share/libubox/jshn.sh
+
+    json_init 
+    json_load "$result_str"
+    json_get_var code_str code
+    [ "$code_str" != "0" ] && {
+        sync_failed "holiday config get failed"
+    }
+
+    json_select data
+    json_get_var version_str version
+    [ "$version_str" == "$holiday_version" ] && {
+        sync_failed "holiday version not changed old"
+    }
+    alarm_log  "holiday version changed, version $holiday_version to $version_str"
+    json_select "items"
+    local Index="1"
+    while json_get_type type $Index && [ "$type" = object ]; do
+        json_select "$((Index++))"
+        json_get_var filename_str filename
+        json_get_var url_str url
+
+        [ "$filename_str" == "$FILE_HOLIDAY$file_ext" ] && {
+            alarm_log "filename:$filename_str"
+            alarm_log "url_str :$url_str"
+            curl $url_str >/tmp/$FILE_HOLIDAY
+        }
+
+        [ "$filename_str" == "$FILE_WORKDAY$file_ext" ] &&    {
+            alarm_log "filename:$filename_str"
+            alarm_log "url_str :$url_str"
+            curl $url_str >/tmp/$FILE_WORKDAY
+        }
+
+        json_select ..
+    done
+
+    [ ! -f /tmp/$FILE_HOLIDAY -o ! -f /tmp/$FILE_WORKDAY ] && {
+        sync_failed "file_not_get"
+        return;
+    }
+
+    json_cleanup
+    alarm_log "success"
+    rm $DEST_DIR/$FILE_HOLIDAY 1>/dev/null 2>/dev/null
+    rm $DEST_DIR/$FILE_WORKDAY 1>/dev/null 2>/dev/null
+    mv /tmp/$FILE_HOLIDAY $DEST_DIR/$FILE_HOLIDAY
+    mv /tmp/$FILE_WORKDAY $DEST_DIR/$FILE_WORKDAY
+    echo $version_str >$DEST_DIR/version
+    fsync $DEST_DIR/version
+
+    date > $DEST_DIR/need_update
+    fsync $DEST_DIR/need_update
+}
+
+config_prepare()
+{
+
+    [ -f $DEST_DIR/version ] && {
+        alarm_log "/data/workday/version exist, return."
+        return;
+    }
+
+    mkdir -p $DEST_DIR
+    [ ! -f $ORI_DIR/$FILE_HOLIDAY$file_ext -o ! -f $ORI_DIR/$FILE_WORKDAY$file_ext ] && {
+        alarm_log "file not exist, country $country"
+        file_ext=""
+    }
+
+    alarm_log "final file ext $file_ext, country $country"
+    ln -s -f $ORI_DIR/$FILE_HOLIDAY$file_ext $DEST_DIR/$FILE_HOLIDAY
+    ln -s -f $ORI_DIR/$FILE_WORKDAY$file_ext $DEST_DIR/$FILE_WORKDAY
+    cp $ORI_DIR/version $DEST_DIR/version
+    /bin/sync
+}
+
+start_service() 
+{
+    [ x"bluetooth" == x`micocfg_work_mode` ] && {
+        logger -t alarm.init.d -p 3  "in bluetooth mode, will not start"
+        return
+    }
+    /usr/bin/alarm_translate.sh
+
+    config_prepare
+
+    procd_open_instance
+    procd_set_param command /usr/bin/alarmd
+
+    procd_set_param respawn 3600 5 0
+    procd_close_instance
+}
+
+

@@ -1,0 +1,14 @@
+#!/bin/sh
+logger "clear user data"
+rm  -f /data/alarm/*
+rm  -f /data/timer/*
+rm  -f /data/mibrain/mibrain_asr_nlp.rcd
+rm -rf /data/.mediaplayerconfig
+
+/usr/bin/mphelper pause
+
+sleep 1
+reboot
+#pause first, mediaplayer required
+
+

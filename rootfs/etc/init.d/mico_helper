@@ -1,0 +1,31 @@
+#!/bin/sh /etc/rc.common
+
+START=70
+
+USE_PROCD=1
+
+notify_cfg_try_create()
+{
+    local level;
+    local level_cfg;
+    for level in 0 1 2 3;do
+        level_cfg="/data/etc/notify_$level.cfg"
+        [ -f $level_cfg ]  && continue;
+        micocfg_set $level_cfg enable 1
+        micocfg_set $level_cfg autoplay 1
+        fsync $level_cfg
+    done
+}
+
+start_service() {
+  mkdir -p /data/notify
+
+  notify_cfg_try_create
+
+  procd_open_instance
+  procd_set_param command /usr/bin/mico-helper
+
+  procd_set_param respawn 3600 5 0
+  procd_close_instance
+}
+

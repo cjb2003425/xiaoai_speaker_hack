@@ -1,0 +1,25 @@
+config core 'version'
+	# ROM ver
+	option ROM '1.88.55'
+	# channel
+	option CHANNEL 'release'
+	# hardware platform
+	option HARDWARE 'LX06'
+	# Bootload
+	option UBOOT '0.0.1'
+	# Linux Kernel ver
+	option LINUX '0.0.1'
+	# RAMFS ver
+	option RAMFS '0.0.1'
+	# SQUASHFS ver
+	option SQAFS '0.0.1'
+	# ROOTFS ver
+	option ROOTFS '0.0.1'
+	#build time
+	option BUILDTIME 'Fri, 26 Apr 2024 10:45:57 +0800'
+	#build timestamp
+	option BUILDTS '1714099557'
+	#build git tag
+	option GTAG 'commit b9e9b6640c2491c7a77a22612e47790e6c8c0356'
+
+

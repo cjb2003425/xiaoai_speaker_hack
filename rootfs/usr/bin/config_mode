@@ -1,0 +1,7 @@
+#!/bin/sh
+logger "stat_points_none spk_wifi_set=1"
+
+/etc/init.d/wireless config_mode "$@"
+#pause first, mediaplayer required
+
+

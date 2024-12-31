@@ -1,0 +1,4 @@
+#!/bin/sh
+
+rm /tmp/dnsmasq.d/xiaomi_dns_server.conf
+/etc/init.d/dnsmasq restart

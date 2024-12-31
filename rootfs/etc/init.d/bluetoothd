@@ -1,0 +1,122 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2007 OpenWrt.org
+
+#start after dbus (60)
+START=62
+USE_PROCD=1
+if [ ! -f "/data/bt/debug" ];then
+DEBUG=0
+else
+DEBUG=`cat /data/bt/debug`
+fi
+PROG=/usr/bin/bluetoothd
+conf_dir=/data/bt/bluez/
+
+function bluetoothd_start() {
+    if [ $DEBUG = "1" ]; then
+        $PROG -C -d -n 2>/tmp/bluetoothd.log &
+        echo "Start	hcidump"
+        rm /tmp/hci.cfa > /dev/null 2>&1
+        hcidump -w /tmp/hci.cfa &
+        cat /proc/kmsg >/tmp/dmsg.log &
+    else
+        procd_open_instance
+        procd_set_param command "$PROG" -n
+        procd_set_param respawn 3600 5 0
+        procd_close_instance
+    fi
+}
+start_marvell() {
+    echo "Start	marvell"
+    BT_MAC=$(getmac.sh mac_bt)
+    bt8xxx=`lsmod | grep bt8xxx`
+    if [ "$bt8xxx" == "" ]; then
+        echo "insmod bt8xxx.ko"
+        insmod bt8xxx.ko bt_mac=$BT_MAC psmode=0
+    fi
+}
+start_marvell_8987() {
+    echo "Start	marvell 8987"
+    insmod hci_uart_8987.ko
+    echo 0 > /sys/class/rfkill/rfkill0/state
+    sleep 1
+    echo 1 > /sys/class/rfkill/rfkill0/state
+    sleep 1
+    if [ $DEBUG = "1" ]; then
+        hciattach /dev/ttyS1 any 115200 flow > /tmp/nxp_hciattach.log 2>&1 &
+    else
+        hciattach /dev/ttyS1 any 115200 flow > /dev/null 2>&1 &
+    fi
+    sleep 2
+    hciconfig hci0 up
+
+    hcitool cmd 0x3f 0x0009 0x80 0x84 0x1E 0x00
+    killall hciattach
+    hciattach /dev/ttyS1 any 2000000 flow
+    sleep 1
+    hciconfig hci0 up
+}
+start_rtk() {
+    echo "Start	rtk"
+    insmod rtk_btuart.ko
+    echo 0 > /sys/class/rfkill/rfkill0/state
+    sleep 1
+    echo 1 > /sys/class/rfkill/rfkill0/state
+    sleep 1
+    if [ $DEBUG = "1" ]; then
+        rtk_hciattach -n -s 115200 ttyS1 rtk_h5 > /tmp/rtk_hciattach.log 2>&1 &
+    else
+        rtk_hciattach -n -s 115200 ttyS1 rtk_h5 > /dev/null 2>&1 &
+    fi
+    sleep 2
+    btmgmt power on
+}
+
+start_service() {
+    BOARD_TYPE=$(micocfg_board_id 2>/dev/null)
+    if [[ x"$BOARD_TYPE" = x"3" ]] || [[ x"$BOARD_TYPE" = x"6" ]] || [[ x"$BOARD_TYPE" = x"9" ]]; then
+        start_rtk
+    elif [[ x"$BOARD_TYPE" = x"5" ]] || [[ x"$BOARD_TYPE" = x"7" ]] || [[ x"$BOARD_TYPE" = x"10" ]] || [[ x"$BOARD_TYPE" = x"11" ]]; then
+	start_marvell_8987
+    else
+        start_marvell
+    fi
+    if [ ! -d $conf_dir/bluetooth ];then
+        /bin/mkdir -p $conf_dir/bluetooth
+        /bin/chmod 777 $conf_dir/bluetooth
+    else
+        if [ -f $conf_dir/bluetooth/main.conf ];then
+            rm -rf $conf_dir/bluetooth/main.conf
+        fi
+    fi
+    cp /etc/bluetooth/* $conf_dir/bluetooth/
+
+    if [ ! -d $conf_dir/lib/bluetooth ];then
+        /bin/mkdir -p $conf_dir/lib/bluetooth
+        /bin/chmod 777 $conf_dir/lib/bluetooth
+    fi
+
+    BT_NAME=$(micocfg_bt_name)
+    BT_ALIAS=$(micocfg_bt_alias)
+    if [ x"$BT_ALIAS" != x"" ];then
+         BT_NAME=$BT_ALIAS
+    fi
+
+    sed -i "s|Name = .*|Name = ${BT_NAME}|" $conf_dir/bluetooth/main.conf
+    echo "Start	bluetoothd"
+    bluetoothd_start
+}
+
+stop_service() {
+    killall -9 rtk_hciattach
+    killall -9 hciattach
+
+    if [ $DEBUG = "1" ]; then
+        echo "Stop	hcidump"
+        killall hcidump
+        rm -rf /tmp/hci.cfa
+        rm -rf /tmp/rtk_hciattach.log
+        rm -rf /tmp/dmsg.log
+        kill -9 $(pidof bluetoothd)
+    fi
+}

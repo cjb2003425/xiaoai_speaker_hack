@@ -1,0 +1,4 @@
+{
+		"--min-voice-length":	10,
+		"--min-sil-length":	50
+}

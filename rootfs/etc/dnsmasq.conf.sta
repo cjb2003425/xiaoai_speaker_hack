@@ -1,0 +1,14 @@
+# auto-generated config file from /etc/config/dhcp
+conf-file=/etc/dnsmasq.conf
+domain-needed
+localise-queries
+#log-queries
+bogus-priv
+expand-hosts
+domain=lan
+server=/lan/
+resolv-file=/tmp/resolv.conf.auto
+addn-hosts=/tmp/hosts
+conf-dir=/tmp/dnsmasq.d
+
+

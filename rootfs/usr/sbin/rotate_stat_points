@@ -1,0 +1,5 @@
+#!/bin/sh
+
+[ ! -f /var/stat_points_rom.log ] && return 0
+cat /var/stat_points_rom.log >> /data/log/stat_points_rom.log
+echo "" > /var/stat_points_rom.log

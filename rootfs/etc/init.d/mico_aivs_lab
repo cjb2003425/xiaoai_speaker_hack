@@ -1,0 +1,29 @@
+#!/bin/sh /etc/rc.common
+
+START=85
+USE_PROCD=1
+DEBUG=0
+
+mico_aivs_log() {
+    shell_cmd=`cat /proc/$PPID/cmdline`
+    who_pid=`cat /proc/$PPID/status|grep PPid|awk '{print $2}'`
+    who_name=`cat /proc/${who_pid}/cmdline`
+    logger -t mico_aivs_lab-init.d -p 3 "who=$who_name, cmd=$shell_cmd, action=$1"
+}
+
+start_service() {
+    mico_aivs_log "start_service"
+    procd_open_instance
+    procd_set_param command /usr/bin/mico_aivs_lab
+    procd_set_param stdout 0
+    procd_set_param stderr 0
+    procd_set_param respawn 3600 5 0
+    procd_close_instance
+}
+
+stop_service() {
+    mico_aivs_log "stop_service"
+    #killall mico_aivs_lab
+    procd_kill "mico_aivs_lab"
+    kill -9 `ps|grep "/usr/bin/mico_aivs_lab"|grep -v grep|awk '{print $1}'`
+}

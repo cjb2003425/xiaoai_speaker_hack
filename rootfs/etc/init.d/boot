@@ -1,0 +1,268 @@
+#!/bin/sh /etc/rc.common
+START=10
+STOP=98
+. /usr/sbin/boot_function.sh
+
+#board_id|board_id|wifi_chip used in 
+#     binfo_create_xxx()
+#     boot_function.sh:binfo_fix_board_info()
+# 1 : LX06  8977 256MB
+# 12: L06A  8977 256MB
+# 6 : LX06  8821 256MB
+# 3 : LX06  8821 128MB
+# 9 : L06A  8821 128MB
+# 20210408 add nxp 8987 support
+# 5 : LX06  8987 128MB
+# 7 : L06A  8987 128MB
+# 20211221 add ESMT AD82128(PA) support
+# 10: LX06  8987 128MB AD82128
+# 11: L06A  8987 128MB AD82128
+
+# lx06  1  3  4  5  6 10
+# l06a  7  8  9 11 12
+#boardid   [digital] default 0
+#boardname [string]
+#wifichip  [bcm43458|bcm43455|bcm43436|xr829|8723ds|8821cs] used in /etc/init.d/wireless
+#
+#3/6 lx06_8821 8821
+#9 l06a_8821 8821
+#12 l06a_marvell marvell
+#*  lx06_marvell marvell *
+board_id=$(fw_env -g board_id)
+case "$board_id" in
+    3|6)
+        board_name="lx06_8821cs"
+        wifi_chip="8821cs"
+    ;;
+    5|10)
+        board_name="lx06_nxp8987"
+        wifi_chip="nxp8987"
+    ;;
+    7|11)
+        board_name="l06a_nxp8987"
+        wifi_chip="nxp8987"
+    ;;
+    9)
+        board_name="l06a_8821cs"
+        wifi_chip="8821cs"
+    ;;
+    8|12)
+        board_name="l06a_marvell"
+        wifi_chip="marvell"
+    ;;
+    1|4)
+        board_name="lx06_marvell"
+        wifi_chip="marvell"
+    ;;
+    *)
+        board_name="lx06_marvell"
+        wifi_chip="marvell"
+    ;;
+esac
+
+
+l06a_board_config_fix()
+{
+if [ x"$board_id" == x"12" ] || [ x"$board_id" == x"9" ] || [ x"$board_id" == x"8" ] || [ x"$board_id" == x"7" ] || [ x"$board_id" == x"11" ]; then
+    mkdir -p /data/mico
+    cp /usr/share/mico/system.cfg /data/mico/
+    micocfg_set /data/mico/system.cfg model L06A
+    cp /usr/share/mico.l06a/*.cfg /data/mico/
+    cfglist=$(cd /usr/share/mico;ls *.cfg)
+    for onecfg in $cfglist;
+    do
+        mount --bind /data/mico/$onecfg  /usr/share/mico/$onecfg
+    done
+
+    #stil need uci
+    cp /usr/share/mico/version /data/mico/
+    cp /usr/share/mico/manifest /data/mico/
+    uci -c /data/mico set version.version.HARDWARE=L06A
+    uci -c /data/mico set manifest.manifest.APPID=461124604870524928
+    uci -c /data/mico set version.miio.module=xiaomi.wifispeaker.l06a
+    uci -c /data/mico set version.miio.ssid_prefix=xiaomi-wifispeaker-l06a_miap
+    uci -c /data/mico commit
+    mount --bind /data/mico/version /usr/share/mico/version
+    mount --bind /data/mico/manifest  /usr/share/mico/manifest
+fi
+}
+
+binfo_create_lx06()
+{
+    KEYPATH=/sys/class/unifykeys
+
+    echo "deviceid" > $KEYPATH/name
+    sn=`cat $KEYPATH/read`
+    echo "didkey" > $KEYPATH/name
+    res=`cat $KEYPATH/read`
+    miio_did=`echo $res | cut -d '|' -f 2`
+    miio_key=`echo $res | cut -d '|' -f 3`
+    echo "mac_wifi" > $KEYPATH/name
+    mac_wifi=`cat $KEYPATH/read`
+    echo "mac_bt" > $KEYPATH/name
+    mac_bt=`cat $KEYPATH/read`
+
+echo 'config binfo "binfo"' > /data/etc/binfo
+    uci -c /data/etc -q batch <<EOF
+    set binfo.binfo.sn=$sn
+    set binfo.binfo.mac_wifi=$mac_wifi
+    set binfo.binfo.mac_bt=$mac_bt
+    set binfo.binfo.miio_did=$miio_did
+    set binfo.binfo.miio_key=$miio_key
+    set binfo.binfo.board_id=$board_id
+    set binfo.binfo.board_name=$board_name
+    set binfo.binfo.wifi_chip=$wifi_chip
+    commit binfo
+EOF
+}
+
+rtl8821_cfg()
+{
+    mkdir -p /data/wifi/
+    if [ ! -f /data/wifi/wifi_efuse_8821cs.map ]; then
+        cp /lib/firmware/rtlwifi/wifi_efuse_8821cs.map /data/wifi/wifi_efuse_8821cs.map
+    fi
+    if [ ! -f /data/wifi/wifimac.txt ]; then
+        cp /lib/firmware/rtlwifi/wifimac.txt /data/wifi/wifimac.txt
+    fi
+    if [ ! -f /data/bt/bdaddr ]; then
+        cp /lib/firmware/rtlbt/bdaddr /data/bt/bdaddr
+    fi
+
+    KEYPATH=/sys/class/unifykeys
+    echo "mac_wifi" > $KEYPATH/name
+    mac_wifi=`cat $KEYPATH/read`
+    old_wifi=`cat /data/wifi/wifimac.txt`
+    if [ "x$mac_wifi" != "x$old_wifi" ]; then
+        echo "$mac_wifi" > /data/wifi/wifimac.txt
+    else
+        echo NOT need modify WiFi MAC.
+    fi
+
+    echo "mac_bt" > $KEYPATH/name
+    mac_bt=`cat $KEYPATH/read`
+    old_bt=`cat /data/bt/bdaddr`
+    if [ "x$mac_bt" != "x$old_bt" ]; then
+        echo "$mac_bt" > /data/bt/bdaddr
+    fi
+}
+
+wifi_bt_driver_prepare_lx06()
+{
+    if [ ! -f /data/bt/bt_config.xml ]; then
+        cp /etc/bt/bt_config.xml /data/bt
+    fi
+    if ! grep -Fq bd_addr /data/bt/bt_config.xml
+    then
+        cp /etc/bt/bt_config.xml /data/bt/bt_config.xml
+    fi
+
+    BOARD_TYPE=`fw_env -g board_id`  1>/dev/null 2>/dev/null
+    case "$BOARD_TYPE" in
+    3|6|9)
+        rtl8821_cfg
+        ;;
+    *)
+        ;;
+    esac
+
+    echo "mac_bt" > $KEYPATH/name
+    mac_bt=`cat $KEYPATH/read`
+    str1=`cat /data/bt/bt_config.xml |grep bd_addr`
+    str2=`echo ${str1#*>}`
+    oldmac=`echo ${str2%:*}`
+    if [ "$mac_bt" != "$oldmac" ]; then
+        sed -i "s|<bd_addr>.*|<bd_addr>$mac_bt:</bd_addr>|" /data/bt/bt_config.xml
+    else
+        echo NOT need modify BT MAC.
+    fi
+}
+
+tas5805_dts_compatible()
+{
+    if [ -e /sys/devices/i2c-2/2-002c ]; then
+        KEYPATH=/sys/class/unifykeys
+        echo "deviceid" > $KEYPATH/name
+        sn_head_1=`cat $KEYPATH/read | cut -c1-10`
+        sn_head_2=`cat /etc/sn_head_list | grep $sn_head_1`
+        if [ $? == 0 ] && [ $sn_head_1 == $sn_head_2 ]; then
+            mount --bind /etc/asound.conf.dts /etc/asound.conf
+            logger -s "mount --bind /etc/asound.conf.dts /etc/asound.conf !!!"
+            echo 1 > /sys/devices/i2c-2/2-002c/reg_reconfig
+            logger -s "echo 1 > /sys/devices/i2c-2/2-002c/reg_reconfig !!!"
+        else
+            logger -s "new sn !!!"
+        fi
+    fi
+
+}
+boot() 
+{
+    openwrt_env_prepare
+
+    /sbin/kmodloader
+
+    /bin/config_generate
+    uci_apply_defaults
+
+    # temporary hack until configd exists
+    /sbin/reload_config
+
+    mount -t pstore pstore /sys/fs/pstore
+
+    ubiattach -p /dev/mtd6
+    mount -t ubifs /dev/ubi0_0 /data
+    if [ $? != 0 ]; then
+        echo Mount data partition is failed, so format it ...
+        ubidetach -p /dev/mtd6
+        flash_erase /dev/mtd6 0 0
+        ubiattach -p /dev/mtd6
+        ubimkvol -N data -m /dev/ubi0
+        mount -t ubifs /dev/ubi0_0 /data
+    fi
+    mkdir -p /data/etc
+
+    /sbin/ifconfig lo up
+
+    # reset mrvl wifi
+    BOARD_TYPE=`fw_env -g board_id`  1>/dev/null 2>/dev/null
+    case "$BOARD_TYPE" in
+    1|4|5|7|8|12)
+#        [ ! -d /sys/class/gpio/gpio78 ] && echo 78 > /sys/class/gpio/export
+#        echo out > /sys/class/gpio/gpio78/direction
+#        echo 0 > /sys/class/gpio/gpio78/value
+        #Delay 500ms
+#        sleep 0.5
+#        echo 1 > /sys/class/gpio/gpio78/value
+#        sleep 0.5
+        echo "nxp"
+        ;;
+    *)
+        echo "rtw"
+        ;;
+    esac
+
+    [ -x /bin/silentboot.sh ] && {
+        echo "`/bin/silentboot.sh get`" > /tmp/silent.flag
+    }
+
+    data_dir_prepare
+
+    wifi_bt_driver_prepare_lx06
+
+    binfo_check
+    [ ! -f /data/etc/binfo ] && binfo_create_lx06
+    l06a_board_config_fix
+    binfo_translate_to_config
+
+    binfo_fix_board_info
+    #sys_status_prepare
+    tas5805_dts_compatible
+    time_init_buildtime
+    hostname_set
+
+    sound_vendor_prepare
+    bluetooth_init
+
+    miio_fix_registed_file
+}

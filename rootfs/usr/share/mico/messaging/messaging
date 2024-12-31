@@ -1,0 +1,3 @@
+#这个文件已经废弃，新文件地址为/data/etc/messaging.cfg
+config messaging 'deviceInfo'
+config messaging 'didiInfo'

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+fw_env -s boot_part boot1
+sleep 1
+reboot -f
+
+echo ""
+echo "MSTC_R_Succ"

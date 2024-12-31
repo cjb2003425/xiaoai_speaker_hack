@@ -1,0 +1,62 @@
+#!/bin/sh /etc/rc.common
+
+START=42
+
+USE_PROCD=1
+export LED_PARENT=led
+
+
+nightmode_config_init()
+{
+    [ -f /data/etc/nightmode.cfg ] && return;
+    [ -f /data/etc/nightmode ] && {
+	    cat /data/etc/nightmode |awk -F "[ \']" '{if($1~/option/) printf $2"=\""$4"\";\n"}' > /data/etc/nightmode.cfg
+        fsync /data/etc/nightmode.cfg
+        rm -f /data/etc/nightmode
+        return;
+    }
+
+    mkdir -p /data/etc
+    touch /data/etc/nightmode.cfg
+    echo  "total=\"night\";" > /data/etc/nightmode.cfg
+    echo  "light=\"night\";" >> /data/etc/nightmode.cfg
+    echo  "volume=\"night\";" >> /data/etc/nightmode.cfg
+    echo  "start=\"22:00\";" >> /data/etc/nightmode.cfg
+    echo  "stop=\"06:00\";" >> /data/etc/nightmode.cfg
+    fsync /data/etc/nightmode.cfg
+}
+
+m03a_watchdog_info()
+{
+    FILE_WTD="/data/status/watchdog"
+    [ ! -f $FILE_WTD ] && {
+        touch $FILE_WTD
+    }
+    info=$(cat $FILE_WTD)
+    echo "$info"
+    info=$(($info+1))
+    echo $info > $FILE_WTD
+}
+
+start_service() {
+    nightmode_config_init
+    procd_open_instance
+    procd_set_param command /bin/ledserver
+    procd_set_param nice
+    procd_append_param nice -10
+    procd_set_param respawn 3600 5 0
+    procd_close_instance
+}
+
+service_started() {
+    local model=$(micocfg_model)
+    if [ 'M03A' = $model ]; then
+        wtd_flag=$(cat /sys/kernel/debug/remoteproc/remoteproc1/wtd)
+        if [ $wtd_flag -eq 1 ]; then
+            echo "(led) dsp1 watchdog causes cpu reset, please check......"
+            m03a_watchdog_info
+            return;
+        fi
+    fi
+    /bin/show_led 4
+}

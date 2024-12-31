@@ -1,0 +1,143 @@
+#!/bin/sh
+# Copyright (C) 2017 Xiaomi.com
+#Mount things needed by this script
+/bin/mount -t proc proc /proc
+/bin/mount -t sysfs sysfs /sys
+
+mdev() {
+	local devpath line major minor devname devtype
+
+	for devpath in $@; do
+		for uevent in /sys/$devpath/uevent; do
+			unset major minor devname
+			devtype="c"
+			while read line; do
+				case $line in
+					MAJOR=*) major=${line#MAJOR=} ;;
+					MINOR=*) minor=${line#MINOR=} ;;
+					DEVNAME=*) devname=${line#DEVNAME=} ;;
+					DEVTYPE=disk) devtype="b" ;;
+				esac
+			done < $uevent
+			mknod -m 600 /dev/$devname $devtype $major $minor
+        	done
+    	done
+}
+
+fail_switch_os() {
+        if [ "$curr_boot" = "boot0" ]; then
+                echo "Switch to boot1 ..."
+                fw_env -s boot_part boot1
+        else
+                echo "Switch to boot0 ..."
+                fw_env -s boot_part boot0
+        fi
+
+        reboot -f
+}
+
+mkdir /dev/input
+mdev /class/nand_env/nand_env /class/i2c-dev/i2c-* /class/block/mtdblock* /class/input/event0
+
+i2cset -f -y 0 0x3a 0xF0 0xC0
+chipid=`i2cget -f -y 0 0x3a 0x00`
+if [ "x$chipid" == "x0x18"  ]; then
+	echo "LED AW20054"
+	/sbin/insmod /lib/modules/4.9.61/aw20054.ko
+else
+	echo "LED ET6037"
+	/sbin/insmod /lib/modules/4.9.61/et6037.ko
+fi
+
+#select rootfs
+mkdir /var/lock
+curr_boot=`fw_env -g boot_part`
+b_id=`fw_env -g board_id`
+#echo "Board ID $b_id"
+if [ "x$b_id" == "x12" ]; then
+	echo "L06A"
+else
+	echo "LX06"
+	/sbin/insmod /lib/modules/4.9.61/gpio-ir-rx.ko
+	/sbin/insmod /lib/modules/4.9.61/gpio-ir-tx.ko
+fi
+
+key_status=`getevent -p /dev/input/event0 | grep KEY | awk -F" " '{print $5}'`
+echo "curr_boot is $curr_boot"
+if [ $key_status == 0073'*' ]; then
+	for i in `seq 0 17`
+	do
+		echo $i 0xff > /sys/devices/i2c-0/0-003a/led_rgb
+	done
+	sleep 2
+	confirm_status=`getevent -p /dev/input/event0 | grep KEY | awk -F" " '{print $4}'`
+	if [ $confirm_status == 0072'*' ]; then
+		echo "Detected PREV key, so switch to other system ..."
+		fail_switch_os
+	else
+		for i in `seq 0 17`
+		do
+			echo $i 0x0 > /sys/devices/i2c-0/0-003a/led_rgb
+		done
+		if [ "x$chipid" == "x0x18"  ]; then
+			/sbin/rmmod aw20054
+			sleep 1
+			/sbin/insmod /lib/modules/4.9.61/aw20054.ko
+		else
+			/sbin/rmmod et6037
+			sleep 1
+			/sbin/insmod /lib/modules/4.9.61/et6037.ko
+		fi
+	fi
+fi
+
+#Defaults
+init="/sbin/init"
+
+echo "Booting from $curr_boot"
+if [ "$curr_boot" = "boot0" ]; then
+        mtd="4"
+else
+        mtd="5"
+fi
+
+#Waiting for device to become ready
+dev=/dev/mtdblock${mtd}
+
+i=1
+while [ "$i" -le 5 ]
+do
+	if [ -b "${dev}" ]; then
+		echo "${dev} is ready now."
+		break
+	fi
+	echo "${dev} is not ready.wait ${i} second now."
+	sleep 1
+	i=$((i+1))
+done
+
+#Mount the root device
+mount -t squashfs ${dev} /mnt
+[ "$?" = "0" ] || {
+        echo "Booting from "$curr_boot" "$dev" failed, switch system."
+        fail_switch_os
+}
+
+# core limit to 8MB
+ulimit -c 16384
+
+
+#Check if $init exists and is executable
+if [[ -x "/mnt/${init}" ]] ; then
+	#Unmount all other mounts so that the ram used by
+	#the initramfs can be cleared after switch_root
+	umount /sys /proc
+
+	#Switch to the new root and execute init
+#	exec chroot /mnt /sbin/init
+	exec switch_root -c /dev/console /mnt "${init}"
+fi
+
+#This will only be run if the exec above failed
+echo "Failed to switch root, dropping to a shell"
+exec sh

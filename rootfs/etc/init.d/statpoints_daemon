@@ -1,0 +1,28 @@
+#!/bin/sh /etc/rc.common
+
+#START=72
+
+USE_PROCD=1
+
+TMP_POINTS="/var/stat_points_rom.log"
+POINTS="/data/log/stat_points_rom.log"
+EXTRA_COMMANDS="do_rotate"
+
+do_rotate() {
+  [ ! -f $TMP_POINTS ] && return 0
+  cat $TMP_POINTS >> $POINTS
+  echo "" > $TMP_POINTS
+}
+
+start_service() {
+  [ -f $POINTS ] && {
+    cat $POINTS >> $TMP_POINTS
+    rm -f $POINTS
+  }
+  procd_open_instance
+  procd_set_param command /usr/bin/statpoints_daemon
+  procd_set_param respawn 3600 5 0
+  procd_set_param stdout 1
+  procd_set_param stderr 1
+  procd_close_instance
+}

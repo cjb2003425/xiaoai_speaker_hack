@@ -1,0 +1,19 @@
+# auto-generated config file from /etc/config/dhcp
+conf-file=/etc/dnsmasq.conf
+domain-needed
+localise-queries
+#log-queries
+bogus-priv
+expand-hosts
+domain=lan
+server=/lan/
+resolv-file=/tmp/resolv.conf.auto
+addn-hosts=/tmp/hosts
+conf-dir=/tmp/dnsmasq.d
+dhcp-authoritative
+dhcp-leasefile=/tmp/dhcp.leases
+dhcp-broadcast=tag:needs-broadcast
+dhcp-range=lan,10.0.0.100,10.0.0.249,255.0.0.0,12h
+log-facility=/tmp/log/messages
+dhcp-script=/bin/dnsmasq_action.sh
+

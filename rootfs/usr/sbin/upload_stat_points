@@ -1,0 +1,10 @@
+#!/bin/sh
+
+[ -f /data/log/stat_points_rom.log ] && {
+  cat /data/log/stat_points_rom.log >> /var/stat_points_rom.log
+  rm -f /data/log/stat_points_rom.log
+}
+
+/usr/bin/matool_collect_stat_points /tmp/stat_points_rom.log > /tmp/stat_points.json
+/usr/bin/statpoints
+/bin/sh /usr/sbin/statpoints_clear.sh

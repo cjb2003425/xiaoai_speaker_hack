@@ -1,0 +1,32 @@
+#!/bin/sh /etc/rc.common
+
+#before wireless
+# START=75
+# STOP=30
+
+USE_PROCD=1
+
+PROG1=/usr/bin/bluez_mibt_ble
+
+function bluez_mibt_ble_start() {
+	procd_open_instance
+	procd_set_param command "$PROG1"
+	procd_append_param respawn 3600
+	procd_append_param respawn 5
+	procd_append_param respawn 5
+	procd_close_instance
+}
+
+start_service() {
+	count=0
+	while [ "`pidof bluetoothd`" == "" ]; do
+		sleep 1
+		let count++
+		if [ ${count} -gt 10 ]; then
+			break
+		fi
+	done
+
+	echo "mibt Start BLE"
+	bluez_mibt_ble_start
+}
