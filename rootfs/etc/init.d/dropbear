@@ -127,9 +127,9 @@ start_service()
 	ssh_en_bind=`cat /data/.ssh_en 2>/dev/null`
 	ssh_en_tmp=`cat /tmp/ssh_en 2>/dev/null`
 	channel=`micocfg_channel 2>/dev/null`
-	if [ "$ssh_en" != "1" -a "$ssh_en_bind" != "1" -a "$ssh_en_tmp" != "1" -a "$channel" = "release" ]; then
-		return 0                                                                                  
-	fi
+	#if [ "$ssh_en" != "1" -a "$ssh_en_bind" != "1" -a "$ssh_en_tmp" != "1" -a "$channel" = "release" ]; then
+	#	return 0                                                                                  
+	#fi
 	[ -s /data/etc/dropbear/dropbear_rsa_host_key ] || keygen
 
 	. /lib/functions.sh
