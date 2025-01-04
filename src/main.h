@@ -10,4 +10,4 @@ void oai_init_audio_encoder();
 void oai_send_audio(PeerConnection *peer_connection);
 void oai_audio_decode(uint8_t *data, size_t size);
 void oai_webrtc();
-void oai_http_request(char *offer, char *answer);
+void oai_http_request(const char *offer, char *answer);

@@ -2,9 +2,24 @@
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "main.h"
 
+// Define constants
+#define TICK_INTERVAL 15
+#define MAX_HTTP_OUTPUT_BUFFER 4096
+
 PeerConnection *peer_connection = NULL;
+
+// Audio sending task
+void *oai_send_audio_task(void *user_data) {
+    oai_init_audio_encoder();
+    while (1) {
+        oai_send_audio(peer_connection);
+        usleep(TICK_INTERVAL * 1000); // Sleep for TICK_INTERVAL milliseconds
+    }
+    return NULL;
+}
 
 static void oai_onconnectionstatechange_task(PeerConnectionState state,
                                              void *user_data) {
@@ -13,7 +28,15 @@ static void oai_onconnectionstatechange_task(PeerConnectionState state,
 
   if (state == PEER_CONNECTION_DISCONNECTED ||
       state == PEER_CONNECTION_CLOSED) {
+      printf("Connection fail!");
   } else if (state == PEER_CONNECTION_CONNECTED) {
+      pthread_t audio_thread;
+      int result = pthread_create(&audio_thread, NULL, oai_send_audio_task, NULL);
+      if (result != 0) {
+          // Handle the error
+          perror("Failed to create audio thread");
+          exit(1); // Exit or handle the error as appropriate
+      }
   }
 }
 
@@ -30,6 +53,7 @@ void oai_webrtc() {
       .video_codec = CODEC_NONE,
       .datachannel = DATA_CHANNEL_NONE,
       .onaudiotrack = [](uint8_t *data, size_t size, void *userdata) -> void {
+        oai_audio_decode(data, size);
       },
       .onvideotrack = NULL,
       .on_request_keyframe = NULL,
