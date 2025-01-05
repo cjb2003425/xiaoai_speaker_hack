@@ -82,7 +82,7 @@ void oai_http_request(const char *offer, char *answer) {
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, offer);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(offer));
-    //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
 
 
     // Add headers
@@ -105,7 +105,7 @@ void oai_http_request(const char *offer, char *answer) {
         if (http_code != 201) {
             fprintf(stderr, "%s: HTTP request failed, code: %ld\n", LOG_TAG, http_code);
         } else {
-            printf("%s: HTTP response: %s\n", LOG_TAG, response.data);
+            strncpy(answer, response.data, MAX_HTTP_OUTPUT_BUFFER);
         }
     }
 
