@@ -6,7 +6,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(SRC "webrtc.cpp" "main.cpp" "http.cpp" "media.cpp")
 
 # Add include directory for headers
-include_directories("../install/include")
+include_directories("../install/include" "../deps/libpeer/src")
 
 # Specify the library directory where libpeer.so is located
 link_directories("${CMAKE_SOURCE_DIR}/install/lib")
