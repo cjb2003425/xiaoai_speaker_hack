@@ -8,6 +8,10 @@
 // Define constants
 #define TICK_INTERVAL 15
 #define MAX_HTTP_OUTPUT_BUFFER 4096
+#define DATACHANNEL_NAME "oai-events"
+
+char* response_create = "{\"type\":\"response.create\",\"response\":{\"modalities\":[\"text\"],\"instructions\":\"Write a haiku about code\"}}";
+char* protocol = "bar";
 
 PeerConnection *peer_connection = NULL;
 
@@ -21,15 +25,32 @@ void *oai_send_audio_task(void *user_data) {
     return NULL;
 }
 
+void on_open(void* userdata) {
+  printf("on open\n");
+  if (peer_connection_create_datachannel(peer_connection, DATA_CHANNEL_RELIABLE, 0, 0, DATACHANNEL_NAME, protocol) == 13) {
+     printf("data channel created\n"); 
+  }
+}
+
+void on_close(void* userdata) {
+  printf("on close\n");
+}
+
+void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
+  printf("on_mesage:%s\n",msg);
+  //peer_connection_datachannel_send(peer_connection, response_create, sizeof(response_create));
+}
+
 static void oai_onconnectionstatechange_task(PeerConnectionState state,
                                              void *user_data) {
-  printf("PeerConnectionState: %s",
+  printf("PeerConnectionState: %s\n",
            peer_connection_state_to_string(state));
 
   if (state == PEER_CONNECTION_DISCONNECTED ||
       state == PEER_CONNECTION_CLOSED) {
       printf("Connection fail!");
   } else if (state == PEER_CONNECTION_CONNECTED) {
+#if 0
       pthread_t audio_thread;
       int result = pthread_create(&audio_thread, NULL, oai_send_audio_task, NULL);
       if (result != 0) {
@@ -37,6 +58,7 @@ static void oai_onconnectionstatechange_task(PeerConnectionState state,
           perror("Failed to create audio thread");
           exit(1); // Exit or handle the error as appropriate
       }
+#endif
   }
 }
 
@@ -51,9 +73,9 @@ void oai_webrtc() {
       .ice_servers = {},
       .audio_codec = CODEC_OPUS,
       .video_codec = CODEC_NONE,
-      .datachannel = DATA_CHANNEL_NONE,
+      .datachannel = DATA_CHANNEL_STRING,
       .onaudiotrack = [](uint8_t *data, size_t size, void *userdata) -> void {
-        oai_audio_decode(data, size);
+        //oai_audio_decode(data, size);
       },
       .onvideotrack = NULL,
       .on_request_keyframe = NULL,
@@ -69,6 +91,7 @@ void oai_webrtc() {
                                              oai_onconnectionstatechange_task);
   peer_connection_onicecandidate(peer_connection, oai_on_icecandidate_task);
   peer_connection_create_offer(peer_connection);
+  peer_connection_ondatachannel(peer_connection, on_message, on_open, on_close);
 
   while (1) {
     peer_connection_loop(peer_connection);
