@@ -3,17 +3,26 @@
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <iostream>
+#include <string>
+#include <nlohmann/json.hpp> 
 #include "main.h"
+#include "session.h"
+
+// For convenience
+using json = nlohmann::json;
 
 // Define constants
 #define TICK_INTERVAL 15
 #define MAX_HTTP_OUTPUT_BUFFER 4096
 #define DATACHANNEL_NAME "oai-events"
+#define MAX_EVENT_NAME_LEN 64
 
 char* response_create = "{\"type\":\"response.create\",\"response\":{\"modalities\":[\"text\"],\"instructions\":\"Write a haiku about code\"}}";
 char* protocol = "bar";
 
 PeerConnection *peer_connection = NULL;
+Session session;
 
 // Audio sending task
 void *oai_send_audio_task(void *user_data) {
@@ -37,7 +46,18 @@ void on_close(void* userdata) {
 }
 
 void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
-  printf("on_mesage:%s\n",msg);
+    std::string json_data = std::string(msg, len);
+    // Parse the JSON string
+    json j = json::parse(json_data);
+
+    // Check if the type is "session.created"
+    if (j["type"] == "session.created") {
+        session.from_json(j["session"]);
+        // Print the session details
+        session.print();
+    } else {
+        std::cout << "The type is not 'session.created'. No session object created." << std::endl;
+    }
   //peer_connection_datachannel_send(peer_connection, response_create, sizeof(response_create));
 }
 
