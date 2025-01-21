@@ -1,7 +1,6 @@
 #include "peer.h"
 
 #define LOG_TAG "realtimeapi-sdk"
-#define MAX_HTTP_OUTPUT_BUFFER 2048
 
 void oai_wifi(void);
 void oai_init_audio_capture(void);

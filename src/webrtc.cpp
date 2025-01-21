@@ -14,15 +14,14 @@ using json = nlohmann::json;
 
 // Define constants
 #define TICK_INTERVAL 15
-#define MAX_HTTP_OUTPUT_BUFFER 4096
 #define DATACHANNEL_NAME "oai-events"
 #define MAX_EVENT_NAME_LEN 64
+#define MAX_HTTP_OUTPUT_BUFFER 4096
 
-char* response_create = "{\"type\":\"response.create\",\"response\":{\"modalities\":[\"text\"],\"instructions\":\"Write a haiku about code\"}}";
 char* protocol = "bar";
 
-PeerConnection *peer_connection = NULL;
-Session session;
+PeerConnection *peer_connection = nullptr;
+Session* session = nullptr;
 
 // Audio sending task
 void *oai_send_audio_task(void *user_data) {
@@ -47,18 +46,23 @@ void on_close(void* userdata) {
 
 void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
     std::string json_data = std::string(msg, len);
-    // Parse the JSON string
-    json j = json::parse(json_data);
-
-    // Check if the type is "session.created"
-    if (j["type"] == "session.created") {
-        session.from_json(j["session"]);
-        // Print the session details
-        session.print();
-    } else {
-        std::cout << "The type is not 'session.created'. No session object created." << std::endl;
+    try {
+        // Parse the JSON message
+        json event = json::parse(json_data);
+        // Check if the type is "session.created"
+        if (event["type"] == "session.created") {
+            session = new Session(peer_connection);
+            session->from_json(event["session"]);
+            // Print the session details
+            session->print();
+            session->created();
+            session->update();
+        } else {
+            std::cout << "The type is not 'session.created'. No session object created." << std::endl;
+        }
+    } catch (json::parse_error& e) {
+        std::cerr << "JSON parse error: " << e.what() << std::endl;
     }
-  //peer_connection_datachannel_send(peer_connection, response_create, sizeof(response_create));
 }
 
 static void oai_onconnectionstatechange_task(PeerConnectionState state,

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp> // Include the nlohmann/json library
+#include "peer.h"
 
 // For convenience
 using json = nlohmann::json;
@@ -12,6 +13,7 @@ using json = nlohmann::json;
 // Define the Session class
 class Session {
 public:
+    PeerConnection* peer_connection;
     // Member variables
     std::string id;
     std::string object;
@@ -33,6 +35,7 @@ public:
     std::string client_secret;
     std::vector<std::string> tools;
 
+    Session(PeerConnection* pc);
     // Parse the JSON string into the class
     void from_json(const json& j);
 

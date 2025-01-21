@@ -1,5 +1,10 @@
 #include "session.h"
 
+Session::Session(PeerConnection* pc)
+{
+    peer_connection = pc;
+}
+
 // Parse the JSON string into the class
 void Session::from_json(const json& j) {
     id = j["id"];
@@ -58,6 +63,16 @@ void Session::created() {
 }
 
 void Session::update() {
-
+    // Create a client event
+    json responseCreate = {
+        {"type", "response.create"},
+        {"response", {
+            {"modalities", {"text"}},
+            {"instructions", "Write a haiku about code"}
+        }}
+    };
+    // Serialize to JSON and send
+    std::string message = responseCreate.dump();
+    peer_connection_datachannel_send(peer_connection, const_cast<char*>(message.c_str()), message.size());
 }
 
