@@ -3,7 +3,7 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Define source files
-set(SRC "webrtc.cpp" "main.cpp" "http.cpp" "media.cpp" "session.cpp")
+set(SRC "webrtc.cpp" "main.cpp" "http.cpp" "media.cpp" )
 
 # Create an executable from source files
 add_executable(chat ${SRC})

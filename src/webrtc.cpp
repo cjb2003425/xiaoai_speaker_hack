@@ -7,7 +7,6 @@
 #include <string>
 #include <nlohmann/json.hpp> 
 #include "main.h"
-#include "session.h"
 
 // For convenience
 using json = nlohmann::json;
@@ -21,7 +20,39 @@ using json = nlohmann::json;
 char* protocol = "bar";
 
 PeerConnection *peer_connection = nullptr;
-Session* session = nullptr;
+json session;
+json conversation;
+
+void create_conversation_item(std::string message) {
+    std::string jsonString = R"(
+    {
+        "type": "conversation.item.create",
+        "item": {
+            "type": "message",
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text"
+                }
+            ]
+        }
+    }
+    )";
+    json item = json::parse(jsonString);
+    item["item"]["content"][0]["text"] = message;
+    auto data = item.dump();
+    peer_connection_datachannel_send(peer_connection, const_cast<char*>(data.c_str()), data.size());
+}
+
+void create_response() {
+    std::string jsonString = R"({
+      "type": "response.create",
+      "response": {
+          "modalities": [ "text", "audio"]
+      }
+    })";
+    peer_connection_datachannel_send(peer_connection, const_cast<char*>(jsonString.c_str()), jsonString.size());
+}
 
 // Audio sending task
 void *oai_send_audio_task(void *user_data) {
@@ -49,16 +80,24 @@ void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
     try {
         // Parse the JSON message
         json event = json::parse(json_data);
-        // Check if the type is "session.created"
+        std::cout << "message type is " << event["type"] << std::endl;
         if (event["type"] == "session.created") {
-            session = new Session(peer_connection);
-            session->from_json(event["session"]);
-            // Print the session details
-            session->print();
-            session->created();
-            session->update();
+            session = event["session"];
+            create_response();
+        } else if (event["type"] == "session.updated") {
+            session = event["session"];
+        } else if (event["type"] == "conversation.item.created") {
+            create_response();
+        } else if (event["type"] == "response.audio_transcript.delta") {
+            std::cout << event["delta"] << std::endl;
+        } else if (event["type"] == "response.audio_transcript.done") {
+            std::cout << event["transcript"] << std::endl;
+        } else if (event["type"] == "response.done") {
+            std::cout << event["response"]["usage"] << std::endl;
+        } else if (event["type"] == "error") {
+            std::cout << json_data << std::endl;
         } else {
-            std::cout << "The type is not 'session.created'. No session object created." << std::endl;
+            //std::cout << json_data << std::endl;
         }
     } catch (json::parse_error& e) {
         std::cerr << "JSON parse error: " << e.what() << std::endl;
