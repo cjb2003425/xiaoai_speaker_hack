@@ -83,11 +83,11 @@ void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
         std::cout << "message type is " << event["type"] << std::endl;
         if (event["type"] == "session.created") {
             session = event["session"];
+            std::cout << json_data << std::endl;
             create_response();
         } else if (event["type"] == "session.updated") {
             session = event["session"];
         } else if (event["type"] == "conversation.item.created") {
-            create_response();
         } else if (event["type"] == "response.audio_transcript.delta") {
             std::cout << event["delta"] << std::endl;
         } else if (event["type"] == "response.audio_transcript.done") {
@@ -138,7 +138,7 @@ void oai_webrtc() {
       .video_codec = CODEC_NONE,
       .datachannel = DATA_CHANNEL_STRING,
       .onaudiotrack = [](uint8_t *data, size_t size, void *userdata) -> void {
-        //oai_audio_decode(data, size);
+          oai_audio_decode(data, size);
       },
       .onvideotrack = NULL,
       .on_request_keyframe = NULL,

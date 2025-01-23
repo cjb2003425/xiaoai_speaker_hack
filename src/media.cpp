@@ -8,6 +8,7 @@
 #define OPUS_OUT_BUFFER_SIZE 1276  // 1276 bytes is recommended by opus_encode
 #define SAMPLE_RATE 8000
 #define BUFFER_SAMPLES 320
+#define PCM_DEVICE "default" // Default ALSA playback device
 
 #define OPUS_ENCODER_BITRATE 30000
 #define OPUS_ENCODER_COMPLEXITY 0
@@ -19,28 +20,50 @@ OpusDecoder *opus_decoder = NULL;
 OpusEncoder *opus_encoder = NULL;
 opus_int16 *encoder_input_buffer = NULL;
 uint8_t *encoder_output_buffer = NULL;
+FILE *output_file = NULL;
 
 void oai_init_audio_capture() {
-    const char *capture_name = "hw:0,2"; // Card 0, Device 2
-    const char *playback_name = "hw:0,2"; // Card 0, Device 2
-    // Initialize ALSA for output
-    int err;
-    if ((err = snd_pcm_open(&pcm_handle_output, capture_name, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
-        fprintf(stderr, "Unable to open playback device: %s\n", snd_strerror(err));
+    snd_pcm_hw_params_t *params;
+    unsigned int sample_rate = 8000;
+    int channels = 1;
+    snd_pcm_uframes_t frames = 32;
+    char *buffer;
+    int pcm, dir;
+    int buffer_size;
+
+    // Open the PCM device
+    if ((pcm = snd_pcm_open(&pcm_handle_output, PCM_DEVICE, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+        fprintf(stderr, "ERROR: Can't open \"%s\" PCM device. %s\n", PCM_DEVICE, snd_strerror(pcm));
         return;
     }
 
-    // Set parameters for output
-    snd_pcm_set_params(pcm_handle_output, SND_PCM_FORMAT_S16_LE, SND_PCM_ACCESS_RW_INTERLEAVED, 1, SAMPLE_RATE, 1, 500000); // 0.5 seconds
+    // Allocate hardware parameters object
+    snd_pcm_hw_params_alloca(&params);
 
-    // Initialize ALSA for input
-    if ((err = snd_pcm_open(&pcm_handle_input, playback_name, SND_PCM_STREAM_CAPTURE, 0)) < 0) {
-        fprintf(stderr, "Unable to open capture device: %s\n", snd_strerror(err));
+    // Set default parameters
+    snd_pcm_hw_params_any(pcm_handle_output, params);
+
+    // Set access type (interleaved)
+    snd_pcm_hw_params_set_access(pcm_handle_output, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+
+    // Set sample format (16-bit signed little-endian)
+    snd_pcm_hw_params_set_format(pcm_handle_output, params, SND_PCM_FORMAT_S16_LE);
+
+    // Set sample rate
+    snd_pcm_hw_params_set_rate_near(pcm_handle_output, params, &sample_rate, &dir);
+
+    // Set number of channels
+    snd_pcm_hw_params_set_channels(pcm_handle_output, params, channels);
+
+    // Set period size (frames)
+    snd_pcm_hw_params_set_period_size_near(pcm_handle_output, params, &frames, &dir);
+
+    // Apply hardware parameters to PCM device
+    if ((pcm = snd_pcm_hw_params(pcm_handle_output, params)) < 0) {
+        fprintf(stderr, "ERROR: Can't set hardware parameters. %s\n", snd_strerror(pcm));
+        snd_pcm_close(pcm_handle_output);
         return;
     }
-
-    // Set parameters for input
-    snd_pcm_set_params(pcm_handle_input, SND_PCM_FORMAT_S16_LE, SND_PCM_ACCESS_RW_INTERLEAVED, 1, SAMPLE_RATE, 1, 500000); // 0.5 seconds
 }
 
 void oai_init_audio_decoder() {
@@ -51,13 +74,37 @@ void oai_init_audio_decoder() {
         return;
     }
 
+    #ifdef AUDIO_DEBUG
+    // Open the file for writing binary data
+    output_file = fopen("/tmp/ai.wav", "ab"); // Append binary mode
+    if (output_file == NULL) {
+        perror("Failed to open output file");
+        return;
+    }
+    #endif
+
     output_buffer = (opus_int16 *)malloc(BUFFER_SAMPLES * sizeof(opus_int16));
 }
 
 void oai_audio_decode(uint8_t *data, size_t size) {
+    ssize_t res = 0;
     int decoded_size = opus_decode(opus_decoder, data, size, output_buffer, BUFFER_SAMPLES, 0);
     if (decoded_size > 0) {
-        snd_pcm_writei(pcm_handle_output, output_buffer, decoded_size);
+        #ifdef AUDIO_DEBUG
+        //size_t written = fwrite(output_buffer, sizeof(int16_t), decoded_size, output_file);
+        if (written != (size_t)decoded_size) {
+            fprintf(stderr, "Failed to write all decoded data to file\n");
+        }
+        #endif
+        res = snd_pcm_writei(pcm_handle_output, output_buffer, decoded_size);
+        if (res == -EPIPE) {
+            // Buffer underrun
+            fprintf(stderr, "XRUN.\n");
+            snd_pcm_prepare(pcm_handle_output);
+        } else if (res < 0) {
+            fprintf(stderr, "ERROR: Can't write to PCM device. %s\n", snd_strerror(res));
+        } else {
+        }
     }
 }
 
