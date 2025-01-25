@@ -23,7 +23,7 @@ PeerConnection *peer_connection = nullptr;
 json session;
 json conversation;
 
-void create_conversation_item(std::string message) {
+void create_conversation_item(std::string& message) {
     std::string jsonString = R"(
     {
         "type": "conversation.item.create",
@@ -80,16 +80,15 @@ void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
     try {
         // Parse the JSON message
         json event = json::parse(json_data);
-        std::cout << "message type is " << event["type"] << std::endl;
+        //std::cout << "message type is " << event["type"] << std::endl;
         if (event["type"] == "session.created") {
             session = event["session"];
-            std::cout << json_data << std::endl;
-            create_response();
+            //std::cout << json_data << std::endl;
         } else if (event["type"] == "session.updated") {
             session = event["session"];
         } else if (event["type"] == "conversation.item.created") {
         } else if (event["type"] == "response.audio_transcript.delta") {
-            std::cout << event["delta"] << std::endl;
+            //std::cout << event["delta"] << std::endl;
         } else if (event["type"] == "response.audio_transcript.done") {
             std::cout << event["transcript"] << std::endl;
         } else if (event["type"] == "response.done") {
