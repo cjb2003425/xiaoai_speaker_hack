@@ -1,4 +1,3 @@
-#include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
@@ -6,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <nlohmann/json.hpp> 
+#include <thread>
 #include "main.h"
 
 // For convenience

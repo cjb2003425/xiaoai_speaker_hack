@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "curl.h"
+#include <curl/curl.h>
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))

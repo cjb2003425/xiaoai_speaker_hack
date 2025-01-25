@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "asoundlib.h"
-#include "opus.h"
+#include <alsa/asoundlib.h>
+#include <opus/opus.h>
 #include "main.h"
 
 #define OPUS_OUT_BUFFER_SIZE 1276  // 1276 bytes is recommended by opus_encode
