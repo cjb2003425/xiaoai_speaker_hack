@@ -5,9 +5,13 @@
 #include <sys/inotify.h>
 #include <fstream> 
 #include <unistd.h>
+#include <signal.h>
 #include <nlohmann/json.hpp> 
+extern "C" {
 #include <libubus.h>
 #include <libubox/blobmsg.h>
+#include <libubox/blobmsg_json.h>
+}
 #include "main.h"
 
 using json = nlohmann::json;
@@ -21,7 +25,7 @@ vector<string> fileNames = {
 unordered_map<string, json> items;
 string current_dialog_id;
 static struct ubus_context *ctx;
-static uint32_t ubus_object_id;
+struct blob_buf b;
 
 int mute();
 
@@ -52,6 +56,7 @@ void parseFileContent(const std::string& file_name) {
         return;
     }
 
+    //cerr << file_name << "was been modidified" << endl;
     try {
         // Read the file line by line to handle multiple JSON objects
         std::string line;
@@ -104,7 +109,7 @@ void monitorFileChanges() {
     while (true) {
         int length = read(fd, buffer, sizeof(buffer));
         if (length == -1) {
-            std::cerr << "Error reading events!" << std::endl;
+            cerr << "Error reading events!" << std::endl;
             close(fd);
             return;
         }
@@ -142,55 +147,46 @@ int ubus_deinit() {
     ubus_free(ctx);  // Disconnect ubus
 }
 
-// Callback function for ubus_lookup
-static void ubus_lookup_handler(struct ubus_context *ctx, struct ubus_object_data *obj, void *priv) {
-    ubus_object_id = obj->id;
-    std::cout << "Found ubus object: " << obj->path << std::endl;
-}
 
 int mute () {
-    struct blob_buf b;
+    uint32_t id;
     const char *ubus_object_path = "mediaplayer";
+    const char *message = "{\"action\":\"stop\"}";
 
-    // Call ubus and send the JSON data
-    struct ubus_request req = {0};
-    int ret = ubus_lookup(ctx, ubus_object_path, ubus_lookup_handler, nullptr);
+    blob_buf_init(&b, 0);
+    if (!blobmsg_add_json_from_string(&b, message)) {
+        cerr << "Fail to parse message data" << endl;
+        return -1;
+    }
+
+    int ret = ubus_lookup_id(ctx, ubus_object_path, &id);
     if (ret) {
         fprintf(stderr, "Failed to lookup ubus object: %s\n", ubus_object_path);
         ubus_free(ctx);
         return -1;
     }
-
-    cout << "mute---2" << endl;
     
-    // Initialize blob buffer with error checking
-    blobmsg_buf_init(&b);
-    
-    // Add string to blob buffer
-    const char* name = "action";
-    const char* value = "start";
-    blobmsg_add_string(&b, name, value);
-    
-    cout << "mute---3" << endl;
     // Now invoke the command using the stored object ID
-    ret = ubus_invoke(ctx, ubus_object_id, "player_wakeup", b.head, NULL, NULL, 0);
+    ret = ubus_invoke(ctx, id, "player_wakeup", b.head, NULL, NULL, 0);
     if (ret) {
         std::cerr << "Failed to invoke ubus command" << std::endl;
         blob_buf_free(&b);          // Free the blob buffer
         return -1;
     }
+}
 
-    if (b.buf) {
-        free(b.buf);
-    }
+void handle_siginit(int sig) {
+    cout << "handle sigint" << endl;
+    exit(1);
 }
 
 int main(void) {
-  ubus_init();
-  std::thread monitor(monitorFileChanges);
-  peer_init();
-  oai_init_audio_capture();
-  oai_init_audio_decoder();
-  oai_webrtc();
+    signal(SIGINT, handle_siginit); 
+    ubus_init();
+    std::thread monitor(monitorFileChanges);
+    peer_init();
+    oai_init_audio_capture();
+    oai_init_audio_decoder();
+    oai_webrtc();
 
 }
