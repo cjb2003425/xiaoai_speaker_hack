@@ -11,6 +11,7 @@ extern "C" {
 #include <libubus.h>
 #include <libubox/blobmsg.h>
 #include <libubox/blobmsg_json.h>
+#include "libubox/blob.h"
 }
 #include "main.h"
 
@@ -27,7 +28,21 @@ string current_dialog_id;
 static struct ubus_context *ctx;
 struct blob_buf b;
 
-int mute();
+static int monitor_dir = -1;
+static uint32_t monitor_mask;
+static const char * const monitor_types[] = {
+    [UBUS_MSG_HELLO] = "hello",
+    [UBUS_MSG_STATUS] = "status",
+    [UBUS_MSG_DATA] = "data",
+    [UBUS_MSG_PING] = "ping",
+    [UBUS_MSG_LOOKUP] = "lookup",
+    [UBUS_MSG_INVOKE] = "invoke",
+    [UBUS_MSG_ADD_OBJECT] = "add_object",
+    [UBUS_MSG_REMOVE_OBJECT] = "remove_object",
+    [UBUS_MSG_SUBSCRIBE] = "subscribe",
+    [UBUS_MSG_UNSUBSCRIBE] = "unsubscribe",
+    [UBUS_MSG_NOTIFY] = "notify",
+};
 
 int store(json& data) {
     string text;
@@ -40,7 +55,6 @@ int store(json& data) {
             cout << "final result:" << text << endl;
             create_conversation_item(text);
             create_response();
-            mute();
         }
         cout << data["header"]["name"] << endl;
     }
@@ -133,46 +147,160 @@ void monitorFileChanges() {
     close(fd);
 }
 
-int ubus_init() {
-    // Initialize ubus context
+static const char* ubus_msg_type(uint32_t type)
+{
+    const char *ret = NULL;
+    static char unk_type[16];
+    
+    
+    if (type < ARRAY_SIZE(monitor_types))
+        ret = monitor_types[type];
+    
+    if (!ret) {
+        snprintf(unk_type, sizeof(unk_type), "%d", type);
+        ret = unk_type;
+    }
+    
+    return ret;
+}
+
+
+static char* ubus_get_monitor_data(struct blob_attr *data)
+{
+    static const struct blob_attr_info policy[UBUS_ATTR_MAX] = {
+        { BLOB_ATTR_UNSPEC, 0, 0, nullptr },
+        { BLOB_ATTR_INT32, 0, 0, nullptr },  // UBUS_ATTR_STATUS
+        { BLOB_ATTR_STRING, 0, 0, nullptr }, // UBUS_ATTR_OBJPATH
+        { BLOB_ATTR_INT32, 0, 0, nullptr },  // UBUS_ATTR_OBJID
+        { BLOB_ATTR_STRING, 0, 0, nullptr }, // UBUS_ATTR_METHOD
+        { BLOB_ATTR_INT32, 0, 0, nullptr },  // UBUS_ATTR_OBJTYPE
+        { BLOB_ATTR_NESTED, 0, 0, nullptr }, // UBUS_ATTR_SIGNATURE
+        { BLOB_ATTR_NESTED, 0, 0, nullptr }, // UBUS_ATTR_DATA
+        { BLOB_ATTR_UNSPEC, 0, 0, nullptr },
+        { BLOB_ATTR_INT8, 0, 0, nullptr },   // UBUS_ATTR_ACTIVE
+        { BLOB_ATTR_INT8, 0, 0, nullptr },   // UBUS_ATTR_NO_REPLY
+        { BLOB_ATTR_UNSPEC, 0, 0, nullptr },
+        { BLOB_ATTR_STRING, 0, 0, nullptr }, // UBUS_ATTR_USER
+        { BLOB_ATTR_STRING, 0, 0, nullptr }  // UBUS_ATTR_GROUP
+    };
+    
+    
+    static const char * const names[UBUS_ATTR_MAX] = {
+        nullptr,
+        "status",    // UBUS_ATTR_STATUS
+        "objpath",   // UBUS_ATTR_OBJPATH
+        "objid",     // UBUS_ATTR_OBJID
+        "method",    // UBUS_ATTR_METHOD
+        "objtype",   // UBUS_ATTR_OBJTYPE
+        "signature", // UBUS_ATTR_SIGNATURE
+        "data",      // UBUS_ATTR_DATA
+        nullptr,
+        "active",    // UBUS_ATTR_ACTIVE
+        "no_reply",  // UBUS_ATTR_NO_REPLY
+        nullptr,
+        "user",      // UBUS_ATTR_USER
+        "group"      // UBUS_ATTR_GROUP
+    };
+
+    struct blob_attr *tb[UBUS_ATTR_MAX];
+    int i;
+
+    blob_buf_init(&b, 0);
+    blob_parse(data, tb, policy, UBUS_ATTR_MAX);
+
+    for (i = 0; i < UBUS_ATTR_MAX; i++) {
+        const char *n = names[i];
+        struct blob_attr *v = tb[i];
+
+        if (!tb[i] || !n)
+            continue;
+
+        switch(policy[i].type) {
+        case BLOB_ATTR_INT32:
+            blobmsg_add_u32(&b, n, blob_get_int32(v));
+            break;
+        case BLOB_ATTR_STRING:
+            blobmsg_add_string(&b, n, static_cast<const char*>(blob_data(v)));
+            break;
+        case BLOB_ATTR_INT8:
+            blobmsg_add_u8(&b, n, !!blob_get_int8(v));
+            break;
+        case BLOB_ATTR_NESTED:
+            blobmsg_add_field(&b, BLOBMSG_TYPE_TABLE, n, blobmsg_data(v), blobmsg_data_len(v));
+            break;
+        }
+    }
+
+    return blobmsg_format_json(b.head, true);
+}
+
+static void ubus_monitor_cb(struct ubus_context *ctx, uint32_t seq, struct blob_attr *msg)
+{
+    static const struct blob_attr_info policy[UBUS_MONITOR_MAX] = {
+        { BLOB_ATTR_INT32, 0, 0, nullptr }, // UBUS_MONITOR_CLIENT
+        { BLOB_ATTR_INT32, 0, 0, nullptr }, // UBUS_MONITOR_PEER
+        { BLOB_ATTR_INT8, 0, 0, nullptr },  // UBUS_MONITOR_SEND
+        { BLOB_ATTR_INT32, 0, 0, nullptr }, // UBUS_MONITOR_TYPE
+        { BLOB_ATTR_NESTED, 0, 0, nullptr } // UBUS_MONITOR_DATA
+        };
+
+    struct blob_attr *tb[UBUS_MONITOR_MAX];
+    uint32_t client, peer, type;
+    bool send;
+    char *data;
+    
+    blob_parse(msg, tb, policy, UBUS_MONITOR_MAX);
+    
+    if (!tb[UBUS_MONITOR_CLIENT] ||
+        !tb[UBUS_MONITOR_PEER] ||
+        !tb[UBUS_MONITOR_SEND] ||
+        !tb[UBUS_MONITOR_TYPE] ||
+        !tb[UBUS_MONITOR_DATA]) {
+        printf("Invalid monitor msg\n");
+        return;
+    }
+    
+    send = blob_get_int32(tb[UBUS_MONITOR_SEND]);
+    client = blob_get_int32(tb[UBUS_MONITOR_CLIENT]);
+    peer = blob_get_int32(tb[UBUS_MONITOR_PEER]);
+    type = blob_get_int32(tb[UBUS_MONITOR_TYPE]);
+    
+    if (monitor_mask && type < 32 && !(monitor_mask & (1 << type)))
+        return;
+    
+    if (monitor_dir >= 0 && send != monitor_dir)
+    return;
+    
+    data = ubus_get_monitor_data(tb[UBUS_MONITOR_DATA]);
+    printf("%s %08x #%08x %14s: %s\n", send ? "->" : "<-", client, peer, ubus_msg_type(type), data);
+    free(data);
+    fflush(stdout);
+}
+
+void ubus_monitor_fun() {
+    int ret;
+
     ctx = ubus_connect(NULL);
     if (!ctx) {
         fprintf(stderr, "Failed to connect to ubus\n");
-        return -1;
-    }
-}
-
-int ubus_deinit() {
-    // Clean up
-    ubus_free(ctx);  // Disconnect ubus
-}
-
-
-int mute () {
-    uint32_t id;
-    const char *ubus_object_path = "mediaplayer";
-    const char *message = "{\"action\":\"stop\"}";
-
-    blob_buf_init(&b, 0);
-    if (!blobmsg_add_json_from_string(&b, message)) {
-        cerr << "Fail to parse message data" << endl;
-        return -1;
+        return;
     }
 
-    int ret = ubus_lookup_id(ctx, ubus_object_path, &id);
+    uloop_init();
+    cout << "uloop add" << endl;
+    ubus_add_uloop(ctx);
+    ctx->monitor_cb = ubus_monitor_cb;
+    cout << "uloop start" << endl;
+    ret = ubus_monitor_start(ctx);
     if (ret) {
-        fprintf(stderr, "Failed to lookup ubus object: %s\n", ubus_object_path);
-        ubus_free(ctx);
-        return -1;
+        cerr << "ubus monitor start error" << endl;
+        return;
     }
-    
-    // Now invoke the command using the stored object ID
-    ret = ubus_invoke(ctx, id, "player_wakeup", b.head, NULL, NULL, 0);
-    if (ret) {
-        std::cerr << "Failed to invoke ubus command" << std::endl;
-        blob_buf_free(&b);          // Free the blob buffer
-        return -1;
-    }
+
+    uloop_run();
+    uloop_done();
+
+    ubus_monitor_stop(ctx);
 }
 
 void handle_siginit(int sig) {
@@ -182,8 +310,8 @@ void handle_siginit(int sig) {
 
 int main(void) {
     signal(SIGINT, handle_siginit); 
-    ubus_init();
-    std::thread monitor(monitorFileChanges);
+    std::thread file_monitor(monitorFileChanges);
+    std::thread ubus_monitor(ubus_monitor_fun);
     peer_init();
     oai_init_audio_capture();
     oai_init_audio_decoder();
