@@ -3,6 +3,7 @@
 #include <string.h>
 #include <alsa/asoundlib.h>
 #include <opus/opus.h>
+#include <time.h>
 #include "main.h"
 
 #define OPUS_OUT_BUFFER_SIZE 1276  // 1276 bytes is recommended by opus_encode
@@ -27,9 +28,9 @@ void oai_init_audio_capture() {
     unsigned int sample_rate = 8000;
     int channels = 1;
     snd_pcm_uframes_t frames = 32;
+    snd_pcm_uframes_t buffer_size;
     char *buffer;
     int pcm, dir;
-    int buffer_size;
 
     // Open the PCM device
     if ((pcm = snd_pcm_open(&pcm_handle_output, PCM_DEVICE, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
@@ -55,7 +56,6 @@ void oai_init_audio_capture() {
     // Set number of channels
     snd_pcm_hw_params_set_channels(pcm_handle_output, params, channels);
 
-    // Set period size (frames)
     snd_pcm_hw_params_set_period_size_near(pcm_handle_output, params, &frames, &dir);
 
     // Apply hardware parameters to PCM device
@@ -96,6 +96,7 @@ void oai_audio_decode(uint8_t *data, size_t size) {
             fprintf(stderr, "Failed to write all decoded data to file\n");
         }
         #endif
+
         res = snd_pcm_writei(pcm_handle_output, output_buffer, decoded_size);
         if (res == -EPIPE) {
             // Buffer underrun

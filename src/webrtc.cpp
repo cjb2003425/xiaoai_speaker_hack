@@ -77,6 +77,7 @@ void on_close(void* userdata) {
 
 void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
     std::string json_data = std::string(msg, len);
+    #if 0
     try {
         // Parse the JSON message
         json event = json::parse(json_data);
@@ -101,6 +102,7 @@ void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
     } catch (json::parse_error& e) {
         std::cerr << "JSON parse error: " << e.what() << std::endl;
     }
+    #endif
 }
 
 static void oai_onconnectionstatechange_task(PeerConnectionState state,

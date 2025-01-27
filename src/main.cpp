@@ -6,6 +6,8 @@
 #include <fstream> 
 #include <unistd.h>
 #include <signal.h>
+#include <mutex>
+#include <condition_variable>
 #include <nlohmann/json.hpp> 
 extern "C" {
 #include <libubus.h>
@@ -17,10 +19,13 @@ extern "C" {
 
 using json = nlohmann::json;
 using namespace std;
-vector<string> fileNames = {
-  "/tmp/mico_aivs_lab/instruction.log",
-  "/tmp/mico_aivs_lab/event.log"
-};
+
+const string env_config_path = "/data/env_config";
+string instruction_file_name = "/tmp/mico_aivs_lab/instruction.log";
+bool wakeup_occurred = false;
+bool wakeup_first = true;
+mutex wakeup_mtx;
+condition_variable wakeup_cond;
 
 // Unordered map to store unique items by "id"
 unordered_map<string, json> items;
@@ -28,8 +33,8 @@ string current_dialog_id;
 static struct ubus_context *ctx;
 struct blob_buf b;
 
-static int monitor_dir = -1;
-static uint32_t monitor_mask;
+static int monitor_dir = 1;
+static uint32_t monitor_mask = 0x20; //invoke message
 static const char * const monitor_types[] = {
     [UBUS_MSG_HELLO] = "hello",
     [UBUS_MSG_STATUS] = "status",
@@ -77,15 +82,7 @@ void parseFileContent(const std::string& file_name) {
         while (std::getline(file, line)) {
             // Parse each line as a JSON object
             json json_data = json::parse(line);
-            if (file_name == fileNames[0]) {
-              //instruction
-              dialog_id = json_data["header"]["dialog_id"];
-            } else if (file_name == fileNames[1]) {
-              //event
-              dialog_id = json_data["header"]["id"];
-            } else {
-              cerr << "Wront file:" << file_name << endl;
-            }
+            dialog_id = json_data["header"]["dialog_id"];
 
             if (dialog_id != current_dialog_id) {
                 //new dialog, clear saved data
@@ -102,21 +99,20 @@ void parseFileContent(const std::string& file_name) {
 }
 
 void monitorFileChanges() {
+    unique_lock<mutex> lock(wakeup_mtx);
+    wakeup_cond.wait(lock, []{ return wakeup_occurred; });
+
     int fd = inotify_init();
     if (fd == -1) {
         std::cerr << "Failed to initialize inotify!" << std::endl;
         return;
     }
 
-    std::unordered_map<int, std::string> watchMap; // Map to keep track of watch descriptors
-    for (const auto& fileName : fileNames) {
-        int wd = inotify_add_watch(fd, fileName.c_str(), IN_MODIFY);
-        if (wd == -1) {
-            std::cerr << "Failed to add watch on file: " << fileName << std::endl;
-            close(fd);
-            return;
-        }
-        watchMap[wd] = fileName; // Store the mapping of watch descriptor to file name
+    int wd = inotify_add_watch(fd, instruction_file_name.c_str(), IN_MODIFY);
+    if (wd == -1) {
+        std::cerr << "Failed to add watch on file: " << instruction_file_name << std::endl;
+        close(fd);
+        return;
     }
 
     char buffer[1024];
@@ -133,17 +129,14 @@ void monitorFileChanges() {
             struct inotify_event* event = (struct inotify_event*)&buffer[i];
             if (event->mask & IN_MODIFY) {
                 // Get the file name associated with the watch descriptor
-                std::string modifiedFile = watchMap[event->wd];
-                parseFileContent(modifiedFile);
+                parseFileContent(instruction_file_name);
             }
             i += sizeof(struct inotify_event) + event->len;
         }
     }
 
     // Clean up
-    for (const auto& pair : watchMap) {
-        inotify_rm_watch(fd, pair.first);
-    }
+    inotify_rm_watch(fd, wd);
     close(fd);
 }
 
@@ -272,7 +265,15 @@ static void ubus_monitor_cb(struct ubus_context *ctx, uint32_t seq, struct blob_
     return;
     
     data = ubus_get_monitor_data(tb[UBUS_MONITOR_DATA]);
-    printf("%s %08x #%08x %14s: %s\n", send ? "->" : "<-", client, peer, ubus_msg_type(type), data);
+    json json_data = json::parse(data);
+    cout << "--> " << json_data["method"] << endl;
+    if (wakeup_first && json_data["method"] == "player_wakeup") {
+        lock_guard<mutex> lock(wakeup_mtx);
+        wakeup_occurred = true; 
+        wakeup_cond.notify_all();
+        wakeup_first = false;
+    }
+    //printf("%s %08x #%08x %14s: %s\n", send ? "->" : "<-", client, peer, ubus_msg_type(type), data);
     free(data);
     fflush(stdout);
 }
@@ -287,10 +288,8 @@ void ubus_monitor_fun() {
     }
 
     uloop_init();
-    cout << "uloop add" << endl;
     ubus_add_uloop(ctx);
     ctx->monitor_cb = ubus_monitor_cb;
-    cout << "uloop start" << endl;
     ret = ubus_monitor_start(ctx);
     if (ret) {
         cerr << "ubus monitor start error" << endl;
@@ -308,13 +307,56 @@ void handle_siginit(int sig) {
     exit(1);
 }
 
+void loadEnvConfig(const std::string& filePath) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Error opening config file" << std::endl;
+        exit(1);
+    }
+
+    std::string line;
+    
+    // Read each line of the config file
+    while (std::getline(file, line)) {
+        // Skip empty lines and comments
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+
+        // Find the position of the '=' character to split key and value
+        size_t delimiterPos = line.find('=');
+        if (delimiterPos != std::string::npos) {
+            std::string key = line.substr(0, delimiterPos);
+            std::string value = line.substr(delimiterPos + 1);
+
+            // Remove any leading/trailing whitespaces
+            key.erase(0, key.find_first_not_of(" \t"));
+            key.erase(key.find_last_not_of(" \t") + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+
+            // Export the environment variable
+            if (setenv(key.c_str(), value.c_str(), 1) != 0) {
+                std::cerr << "Error setting environment variable" << std::endl;
+                exit(1);
+            }
+            std::cout << "Exported: " << key << "=" << value << std::endl;
+        }
+    }
+
+    file.close();
+}
+
 int main(void) {
     signal(SIGINT, handle_siginit); 
+    loadEnvConfig(env_config_path);
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
     peer_init();
     oai_init_audio_capture();
     oai_init_audio_decoder();
     oai_webrtc();
-
+    file_monitor.join();
+    ubus_monitor.join();
+    return 0;
 }
