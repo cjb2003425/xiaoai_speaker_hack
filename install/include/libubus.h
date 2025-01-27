@@ -14,10 +14,6 @@
 #ifndef __LIBUBUS_H
 #define __LIBUBUS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <libubox/avl.h>
 #include <libubox/list.h>
 #include <libubox/blobmsg.h>
@@ -60,8 +56,6 @@ typedef void (*ubus_fd_handler_t)(struct ubus_request *req, int fd);
 typedef void (*ubus_complete_handler_t)(struct ubus_request *req, int ret);
 typedef void (*ubus_notify_complete_handler_t)(struct ubus_notify_request *req,
 					       int idx, int ret);
-typedef void (*ubus_notify_data_handler_t)(struct ubus_notify_request *req,
-					   int type, struct blob_attr *msg);
 typedef void (*ubus_connect_handler_t)(struct ubus_context *ctx);
 
 #define UBUS_OBJECT_TYPE(_name, _methods)		\
@@ -227,7 +221,6 @@ struct ubus_notify_request {
 
 	ubus_notify_complete_handler_t status_cb;
 	ubus_notify_complete_handler_t complete_cb;
-	ubus_notify_data_handler_t data_cb;
 
 	uint32_t pending;
 	uint32_t id[UBUS_MAX_NOTIFY_PEERS + 1];
@@ -417,9 +410,5 @@ static inline int ubus_unregister_event_handler(struct ubus_context *ctx,
 {
     return ubus_remove_object(ctx, &ev->obj);
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
