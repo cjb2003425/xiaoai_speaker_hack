@@ -352,6 +352,16 @@ int main(void) {
     loadEnvConfig(env_config_path);
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
+
+    pthread_t thread = pthread_self();
+    struct sched_param param;
+    param.sched_priority = 50;
+
+    int ret = pthread_setschedparam(thread, SCHED_FIFO, &param);
+    if (ret != 0) {
+        perror("pthread_setschedparam");
+        return -1;
+    }
     peer_init();
     oai_init_audio_capture();
     oai_init_audio_decoder();

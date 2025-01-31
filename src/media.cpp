@@ -27,7 +27,7 @@ void oai_init_audio_capture() {
     snd_pcm_hw_params_t *params;
     unsigned int sample_rate = 8000;
     int channels = 1;
-    snd_pcm_uframes_t frames = 32;
+    snd_pcm_uframes_t frames = BUFFER_SAMPLES;
     snd_pcm_uframes_t buffer_size;
     char *buffer;
     int pcm, dir;
