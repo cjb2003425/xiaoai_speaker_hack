@@ -59,7 +59,8 @@ static size_t http_response_handler(void *contents, size_t size, size_t nmemb, v
 }
 
 // Function to send HTTP POST request
-void oai_http_request(const char *offer, char *answer) {
+int oai_http_request(const char *offer, char *answer) {
+    int ret = 0;
     CURL *curl;
     CURLcode res;
     struct curl_slist *headers = NULL;
@@ -73,7 +74,7 @@ void oai_http_request(const char *offer, char *answer) {
     if (!curl) {
         fprintf(stderr, "%s: Failed to initialize CURL\n", LOG_TAG);
         free(response.data);
-        return;
+        return -1;
     }
 
     get_openai_baseurl_and_key();
@@ -99,13 +100,16 @@ void oai_http_request(const char *offer, char *answer) {
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
         fprintf(stderr, "%s: CURL error: %s\n", LOG_TAG, curl_easy_strerror(res));
+        ret = -1;
     } else {
         long http_code = 0;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
         if (http_code != 201) {
             fprintf(stderr, "%s: HTTP request failed, code: %ld\n", LOG_TAG, http_code);
+            ret = -1;
         } else {
             strncpy(answer, response.data, MAX_HTTP_OUTPUT_BUFFER);
+            ret = 0;
         }
     }
 
@@ -113,5 +117,6 @@ void oai_http_request(const char *offer, char *answer) {
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     free(response.data);
+    return ret;
 }
 

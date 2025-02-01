@@ -9,6 +9,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <nlohmann/json.hpp> 
+#include "ThreadTimer.hpp"
 extern "C" {
 #include <libubus.h>
 #include <libubox/blobmsg.h>
@@ -352,6 +353,7 @@ int main(void) {
     loadEnvConfig(env_config_path);
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
+    ThreadTimer timer;
 
     pthread_t thread = pthread_self();
     struct sched_param param;
@@ -362,10 +364,12 @@ int main(void) {
         perror("pthread_setschedparam");
         return -1;
     }
-    peer_init();
     oai_init_audio_capture();
     oai_init_audio_decoder();
-    oai_webrtc();
+
+    while (true) {
+        oai_webrtc(timer);
+    }
     file_monitor.join();
     ubus_monitor.join();
     return 0;

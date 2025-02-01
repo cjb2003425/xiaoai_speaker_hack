@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <time.h>
+#include <chrono>
 #include <unistd.h>
 #include <pthread.h>
 #include <iostream>
+#include <atomic>
 #include <string>
 #include <nlohmann/json.hpp> 
 #include <thread>
 #include "main.h"
+#include "ThreadTimer.hpp"
 
 // For convenience
 using json = nlohmann::json;
@@ -22,6 +25,7 @@ char* protocol = "bar";
 PeerConnection *peer_connection = nullptr;
 json session;
 json conversation;
+bool request_exit = false;
 
 void create_conversation_item(std::string& message) {
     std::string jsonString = R"(
@@ -103,60 +107,72 @@ void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
     }
 }
 
+static void oai_connection_timeout() {
+    request_exit = true;
+}
+
 static void oai_onconnectionstatechange_task(PeerConnectionState state,
                                              void *user_data) {
-  printf("PeerConnectionState: %s\n",
-           peer_connection_state_to_string(state));
+    printf("PeerConnectionState: %s\n",
+             peer_connection_state_to_string(state));
 
-  if (state == PEER_CONNECTION_DISCONNECTED ||
-      state == PEER_CONNECTION_CLOSED) {
-      printf("Connection fail!");
-  } else if (state == PEER_CONNECTION_CONNECTED) {
-#if 0
-      pthread_t audio_thread;
-      int result = pthread_create(&audio_thread, NULL, oai_send_audio_task, NULL);
-      if (result != 0) {
-          // Handle the error
-          perror("Failed to create audio thread");
-          exit(1); // Exit or handle the error as appropriate
-      }
-#endif
-  }
+    if (state == PEER_CONNECTION_DISCONNECTED) {
+        printf("Connection disconnected!\n");
+    } else if (state == PEER_CONNECTION_CLOSED) {
+        printf("Connection close!\n");
+        request_exit = true;
+    } else if (state == PEER_CONNECTION_CONNECTED) {
+    } else if (state == PEER_CONNECTION_COMPLETED) {
+        printf("Connection completed!\n");
+    }
 }
 
 static void oai_on_icecandidate_task(char *description, void *user_data) {
-  char local_buffer[MAX_HTTP_OUTPUT_BUFFER + 1] = {0};
-  oai_http_request(description, local_buffer);
-  peer_connection_set_remote_description(peer_connection, local_buffer);
+    char local_buffer[MAX_HTTP_OUTPUT_BUFFER + 1] = {0};
+    while (oai_http_request(description, local_buffer) != 0) {
+        sleep(5);
+    }
+    peer_connection_set_remote_description(peer_connection, local_buffer);
 }
 
-void oai_webrtc() {
-  PeerConfiguration peer_connection_config = {
-      .ice_servers = {},
-      .audio_codec = CODEC_OPUS,
-      .video_codec = CODEC_NONE,
-      .datachannel = DATA_CHANNEL_STRING,
-      .onaudiotrack = [](uint8_t *data, size_t size, void *userdata) -> void {
-          oai_audio_decode(data, size);
-      },
-      .onvideotrack = NULL,
-      .on_request_keyframe = NULL,
-      .user_data = NULL,
-  };
-
-  peer_connection = peer_connection_create(&peer_connection_config);
-  if (peer_connection == NULL) {
-    printf("Failed to create peer connection");
-  }
-
-  peer_connection_oniceconnectionstatechange(peer_connection,
-                                             oai_onconnectionstatechange_task);
-  peer_connection_onicecandidate(peer_connection, oai_on_icecandidate_task);
-  peer_connection_create_offer(peer_connection);
-  peer_connection_ondatachannel(peer_connection, on_message, on_open, on_close);
-
-  while (1) {
-    peer_connection_loop(peer_connection);
-    usleep(10000);
-  }
+void oai_webrtc(ThreadTimer& timer) {
+    PeerConfiguration peer_connection_config = {
+        .ice_servers = {},
+        .audio_codec = CODEC_OPUS,
+        .video_codec = CODEC_NONE,
+        .datachannel = DATA_CHANNEL_STRING,
+        .onaudiotrack = [](uint8_t *data, size_t size, void *userdata) -> void {
+            oai_audio_decode(data, size);
+        },
+        .onvideotrack = NULL,
+        .on_request_keyframe = NULL,
+        .user_data = NULL,
+    };
+  
+    peer_init();
+    peer_connection = peer_connection_create(&peer_connection_config);
+    if (peer_connection == NULL) {
+        printf("Failed to create peer connection");
+    }
+  
+    peer_connection_oniceconnectionstatechange(peer_connection,
+                                               oai_onconnectionstatechange_task);
+    peer_connection_onicecandidate(peer_connection, oai_on_icecandidate_task);
+    peer_connection_create_offer(peer_connection);
+    peer_connection_ondatachannel(peer_connection, on_message, on_open, on_close);
+    
+    //timer.set(10, oai_connection_timeout);
+    //timer.start();
+    while (1) {
+        peer_connection_loop(peer_connection);
+        usleep(10000);
+        if (request_exit) {
+            std::cout << "connection destroy" << std::endl;
+            request_exit = false;
+            break;
+        }
+    }
+    peer_connection_destroy(peer_connection);
+    peer_deinit();
+    //timer.stop();
 }
