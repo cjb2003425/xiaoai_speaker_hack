@@ -11,6 +11,7 @@ void oai_init_audio_encoder();
 void oai_send_audio(PeerConnection *peer_connection);
 void oai_audio_decode(uint8_t *data, size_t size);
 void oai_webrtc(ThreadTimer& timer);
+int oai_websockets();
 int oai_http_request(const char *offer, char *answer);
 void create_conversation_item(std::string& message);
 void create_response();

@@ -3,7 +3,7 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Define source files
-set(SRC "webrtc.cpp" "main.cpp" "http.cpp" "media.cpp" )
+set(SRC "webrtc.cpp" "main.cpp" "http.cpp" "media.cpp" "websockets.cpp" "utils.cpp")
 
 # Create an executable from source files
 add_executable(chat ${SRC})
@@ -12,7 +12,7 @@ add_executable(chat ${SRC})
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
     message(STATUS "Detected ARM architecture.")
     target_link_directories(chat PRIVATE "${CMAKE_SOURCE_DIR}/install/lib" "${CMAKE_SOURCE_DIR}/build/src" "${CMAKE_SOURCE_DIR}/build/dist/lib")
-    target_link_libraries(chat PRIVATE peer curl z pthread asound opus crypto ubus ubox blobmsg_json json-c)
+    target_link_libraries(chat PRIVATE peer curl z pthread asound opus crypto ubus ubox blobmsg_json json-c websockets)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     message(STATUS "Detected x86 architecture.")
     find_package(nlohmann_json  REQUIRED)
@@ -24,4 +24,3 @@ endif()
 
 # Add include directory for headers
 include_directories("../install/include" "../deps/libpeer/src")
-

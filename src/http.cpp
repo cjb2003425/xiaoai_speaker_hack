@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
+#include <string>
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -14,30 +15,6 @@ typedef struct {
     char *data;
     size_t size;
 } http_response_t;
-
-static char *g_api_key = NULL; 
-static char *g_base_url = NULL; 
-
-int get_openai_baseurl_and_key() {
-    if (g_api_key) {
-        return 0;
-    }
-
-    g_api_key = getenv("OPENAI_API_KEY");
-    if (g_api_key == NULL) {
-        fprintf(stderr, "Error: OPENAI_API_KEY not set in environment.\n");
-        return 1;
-    }
-    g_base_url = getenv("OPENAI_REALTIMEAPI");
-    if (g_base_url == NULL) {
-        fprintf(stderr, "Error: base url not set in environment.\n");
-        return 1;
-    }
-
-    printf("OpenAI API Key: %s\n", g_api_key);
-    printf("Base url: %s\n", g_base_url);
-    return 0;
-}
 
 // Callback function for handling HTTP response data
 static size_t http_response_handler(void *contents, size_t size, size_t nmemb, void *userp) {
@@ -77,9 +54,18 @@ int oai_http_request(const char *offer, char *answer) {
         return -1;
     }
 
-    get_openai_baseurl_and_key();
+    std::string base_url = "https://api.example.com"; // Temporary stub
+    std::string api_key = "dummy_key"; // Temporary stub
+
+    if (base_url.empty() || api_key.empty()) { // Temporary check
+        fprintf(stderr, "%s: Failed to retrieve OpenAI API credentials\n", LOG_TAG);
+        free(response.data);
+        curl_easy_cleanup(curl);
+        return -1;
+    }
+
     // Set CURL options
-    curl_easy_setopt(curl, CURLOPT_URL, g_base_url);
+    curl_easy_setopt(curl, CURLOPT_URL, base_url.c_str());
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, offer);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(offer));
@@ -87,7 +73,7 @@ int oai_http_request(const char *offer, char *answer) {
 
 
     // Add headers
-    snprintf(answer, MAX_HTTP_OUTPUT_BUFFER, "Authorization: Bearer %s", g_api_key);
+    snprintf(answer, MAX_HTTP_OUTPUT_BUFFER, "Authorization: Bearer %s", api_key.c_str());
     headers = curl_slist_append(headers, "Content-Type: application/sdp");
     headers = curl_slist_append(headers, answer); // Authorization header
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -119,4 +105,3 @@ int oai_http_request(const char *offer, char *answer) {
     free(response.data);
     return ret;
 }
-

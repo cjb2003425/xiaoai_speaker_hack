@@ -364,12 +364,16 @@ int main(void) {
         perror("pthread_setschedparam");
         return -1;
     }
+    #ifdef USE_WEBRTC
     oai_init_audio_capture();
     oai_init_audio_decoder();
 
     while (true) {
         oai_webrtc(timer);
     }
+    #else
+    oai_websockets();
+    #endif
     file_monitor.join();
     ubus_monitor.join();
     return 0;
