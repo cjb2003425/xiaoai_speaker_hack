@@ -4,32 +4,18 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <nlohmann/json.hpp> // Include nlohmann/json for JSON handling
-#include "utils.h"
 #include <string.h>
-#include <signal.h>
+#include "utils.h"
+#include "WebSocketClient.h"
 
-/*
- * This represents your object that "contains" the client connection and has
- * the client connection bound to it
- */
+using json = nlohmann::json;
 
-static struct my_conn {
-	lws_sorted_usec_list_t	sul;	     /* schedule connection retry */
-	struct lws		*wsi;	     /* related wsi if any */
-	uint16_t		retry_count; /* count of consequetive retries */
-} mco;
+const uint32_t WebSocketClient::backoff_ms[BACKOFF_MS_NUM] = { 1000, 2000, 3000, 4000, 5000 };
+nlohmann::json WebSocketClient::session;
+WebSocketClient::ConnectionInfo WebSocketClient::mConnectionInfo;
+struct lws_context * WebSocketClient::context = nullptr;
 
-static struct lws_context *context;
-static int port = 443, ssl_connection = LCCSCF_USE_SSL;
-
-static void connect_client(lws_sorted_usec_list_t *sul);
-/*
- * The retry and backoff policy we want to use for our client connections
- */
-
-static const uint32_t backoff_ms[] = { 1000, 2000, 3000, 4000, 5000 };
-
-static const lws_retry_bo_t retry = {
+const lws_retry_bo_t WebSocketClient::retry = {
 	.retry_ms_table			= backoff_ms,
 	.retry_ms_table_count		= LWS_ARRAY_SIZE(backoff_ms),
 	.conceal_count			= LWS_ARRAY_SIZE(backoff_ms),
@@ -40,10 +26,43 @@ static const lws_retry_bo_t retry = {
 	.jitter_percent			= 20,
 };
 
-static int callback_websockets(struct lws *wsi, enum lws_callback_reasons reason,
+void WebSocketClient::updateSession() {
+	session["turn_detection"] = nullptr;
+}
+
+void WebSocketClient::onMessage(const char* message, size_t len) {
+	std::string json_data = std::string(message, len);
+    try {
+        // Parse the JSON message
+        json event = json::parse(json_data);
+      	std::cout << "message type is " << event["type"] << std::endl;
+        if (event["type"] == "session.created") {
+            session = event["session"];
+            std::cout << json_data << std::endl;
+        } else if (event["type"] == "session.updated") {
+            session = event["session"];
+        } else if (event["type"] == "conversation.item.created") {
+        } else if (event["type"] == "response.audio_transcript.delta") {
+            //std::cout << event["delta"] << std::endl;
+        } else if (event["type"] == "response.audio_transcript.done") {
+            std::cout << event["transcript"] << std::endl;
+        } else if (event["type"] == "response.done") {
+            std::cout << event["response"]["usage"] << std::endl;
+        } else if (event["type"] == "error") {
+            std::cout << json_data << std::endl;
+        } else {
+            //std::cout << json_data << std::endl;
+        }
+    } catch (json::parse_error& e) {
+        std::cerr << "JSON parse error: " << e.what() << std::endl;
+    }
+
+}
+
+int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
 		 void *user, void *in, size_t len)
 {
-	struct my_conn *mco = (struct my_conn *)user;
+	ConnectionInfo* con = static_cast<ConnectionInfo*>(user);
 
 	switch (reason) {
     case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER: {
@@ -83,9 +102,9 @@ static int callback_websockets(struct lws *wsi, enum lws_callback_reasons reason
 		break;
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
-		lwsl_hexdump_notice(in, len);
+		lwsl_err("CLIENT_CONNECTION_RECEIVE\n");
+		onMessage((const char*)in, len);
 		break;
-
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
 		lwsl_user("%s: established\n", __func__);
 		break;
@@ -110,16 +129,16 @@ do_retry:
 	 * elements in the backoff table, it will never give up and keep
 	 * retrying at the last backoff delay plus the random jitter amount.
 	 */
-	if (lws_retry_sul_schedule_retry_wsi(wsi, &mco->sul, connect_client,
-					     &mco->retry_count)) {
+	if (lws_retry_sul_schedule_retry_wsi(wsi, &con->sul, connectClient,
+					     &con->retry_count)) {
 		lwsl_err("%s: connection attempts exhausted\n", __func__);
 	}
 
 	return 0;
 }
 
-static const struct lws_protocols protocols[] = {
-	{ "wss", callback_websockets, 0, 0, 0, NULL, 0 },
+const struct lws_protocols WebSocketClient::protocols[2] = {
+	{ "wss", callback, 0, 0, 0, NULL, 0 },
 	LWS_PROTOCOL_LIST_TERM
 };
 
@@ -128,9 +147,9 @@ static const struct lws_protocols protocols[] = {
  * Scheduled sul callback that starts the connection attempt
  */
 
-static void connect_client(lws_sorted_usec_list_t *sul)
+void WebSocketClient::connectClient(lws_sorted_usec_list_t *sul)
 {
-	struct my_conn *mco = lws_container_of(sul, struct my_conn, sul);
+	struct ConnectionInfo *mco = lws_container_of(sul, struct ConnectionInfo, sul);
 	struct lws_client_connect_info i;
 	std::string url;
 
@@ -148,12 +167,12 @@ static void connect_client(lws_sorted_usec_list_t *sul)
 	memset(&i, 0, sizeof(i));
 
 	i.context = context;
-	i.port = port;
+	i.port = PORT;
 	i.address = hostname.c_str();
 	i.path = path.c_str();
 	i.host = i.address;
 	i.origin = i.address;
-	i.ssl_connection = ssl_connection;
+	i.ssl_connection = SSL_CONNECTION;
 	i.protocol = NULL;
 	i.pwsi = &mco->wsi;
 	i.retry_and_idle_policy = &retry;
@@ -166,13 +185,13 @@ static void connect_client(lws_sorted_usec_list_t *sul)
 		 * point.
 		 */
 		if (lws_retry_sul_schedule(context, 0, sul, &retry,
-					   connect_client, &mco->retry_count)) {
+					   connectClient, &mco->retry_count)) {
 			lwsl_err("%s: connection attempts exhausted\n", __func__);
 		}
 }
 
 
-int oai_websockets()
+int WebSocketClient::connect()
 {
 	struct lws_context_creation_info info;
 	const char *p;
@@ -193,7 +212,7 @@ int oai_websockets()
 	}
 
 	/* schedule the first client connection attempt to happen immediately */
-	lws_sul_schedule(context, 0, &mco.sul, connect_client, 1);
+	lws_sul_schedule(context, 0, &mConnectionInfo.sul, connectClient, 1);
 
 	while (n >= 0)
 		n = lws_service(context, 0);

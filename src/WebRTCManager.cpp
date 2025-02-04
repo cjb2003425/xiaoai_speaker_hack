@@ -9,87 +9,38 @@
 #include <nlohmann/json.hpp> 
 #include <thread>
 #include "main.h"
+#include "WebRTCManager.h"
 #include "ThreadTimer.hpp"
 
 // For convenience
 using json = nlohmann::json;
 
-// Define constants
-#define TICK_INTERVAL 15
-#define DATACHANNEL_NAME "oai-events"
-#define MAX_EVENT_NAME_LEN 64
-#define MAX_HTTP_OUTPUT_BUFFER 4096
-
-char* protocol = "bar";
-
-PeerConnection *peer_connection = nullptr;
-json session;
-json conversation;
-bool request_exit = false;
-
-void create_conversation_item(std::string& message) {
-    std::string jsonString = R"(
-    {
-        "type": "conversation.item.create",
-        "item": {
-            "type": "message",
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text"
-                }
-            ]
-        }
+void WebRTCManager::onOpen(void* userdata) {
+    WebRTCManager* manager = static_cast<WebRTCManager*>(userdata);
+    char name[32] = "oai-event";
+    char protocol[32] = "bar";
+    printf("on open\n");
+    if (peer_connection_create_datachannel(manager->peer_connection, DATA_CHANNEL_RELIABLE, 0, 0, name, protocol) == 13) {
+       printf("data channel created\n"); 
     }
-    )";
-    json item = json::parse(jsonString);
-    item["item"]["content"][0]["text"] = message;
-    auto data = item.dump();
-    peer_connection_datachannel_send(peer_connection, const_cast<char*>(data.c_str()), data.size());
 }
 
-void create_response() {
-    std::string jsonString = R"({
-      "type": "response.create",
-      "response": {
-          "modalities": [ "text", "audio"]
-      }
-    })";
-    peer_connection_datachannel_send(peer_connection, const_cast<char*>(jsonString.c_str()), jsonString.size());
+void WebRTCManager::onClose(void* userdata) {
+    printf("on close\n");
 }
 
-// Audio sending task
-void *oai_send_audio_task(void *user_data) {
-    oai_init_audio_encoder();
-    while (1) {
-        oai_send_audio(peer_connection);
-        usleep(TICK_INTERVAL * 1000); // Sleep for TICK_INTERVAL milliseconds
-    }
-    return NULL;
-}
-
-void on_open(void* userdata) {
-  printf("on open\n");
-  if (peer_connection_create_datachannel(peer_connection, DATA_CHANNEL_RELIABLE, 0, 0, DATACHANNEL_NAME, protocol) == 13) {
-     printf("data channel created\n"); 
-  }
-}
-
-void on_close(void* userdata) {
-  printf("on close\n");
-}
-
-void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
+void WebRTCManager::onMessage(char* msg, size_t len, void* userdata, uint16_t sid) {
+    WebRTCManager* manager = static_cast<WebRTCManager*>(userdata);
     std::string json_data = std::string(msg, len);
     try {
         // Parse the JSON message
         json event = json::parse(json_data);
         //std::cout << "message type is " << event["type"] << std::endl;
         if (event["type"] == "session.created") {
-            session = event["session"];
+            manager->session = event["session"];
             //std::cout << json_data << std::endl;
         } else if (event["type"] == "session.updated") {
-            session = event["session"];
+            manager->session = event["session"];
         } else if (event["type"] == "conversation.item.created") {
         } else if (event["type"] == "response.audio_transcript.delta") {
             //std::cout << event["delta"] << std::endl;
@@ -107,12 +58,13 @@ void on_message(char* msg, size_t len, void* userdata, uint16_t sid) {
     }
 }
 
-static void oai_connection_timeout() {
+void WebRTCManager::connectionTimeout() {
     request_exit = true;
 }
 
-static void oai_onconnectionstatechange_task(PeerConnectionState state,
+void WebRTCManager::onConnectionStateChange(PeerConnectionState state,
                                              void *user_data) {
+    WebRTCManager* manager = static_cast<WebRTCManager*>(user_data);
     printf("PeerConnectionState: %s\n",
              peer_connection_state_to_string(state));
 
@@ -120,22 +72,23 @@ static void oai_onconnectionstatechange_task(PeerConnectionState state,
         printf("Connection disconnected!\n");
     } else if (state == PEER_CONNECTION_CLOSED) {
         printf("Connection close!\n");
-        request_exit = true;
+        manager->request_exit = true;
     } else if (state == PEER_CONNECTION_CONNECTED) {
     } else if (state == PEER_CONNECTION_COMPLETED) {
         printf("Connection completed!\n");
     }
 }
 
-static void oai_on_icecandidate_task(char *description, void *user_data) {
+void WebRTCManager::onIceCandidate(char *description, void *user_data) {
+    WebRTCManager* manager = static_cast<WebRTCManager*>(user_data);
     char local_buffer[MAX_HTTP_OUTPUT_BUFFER + 1] = {0};
     while (oai_http_request(description, local_buffer) != 0) {
         sleep(5);
     }
-    peer_connection_set_remote_description(peer_connection, local_buffer);
+    peer_connection_set_remote_description(manager->peer_connection, local_buffer);
 }
 
-void oai_webrtc(ThreadTimer& timer) {
+bool WebRTCManager::init() {
     PeerConfiguration peer_connection_config = {
         .ice_servers = {},
         .audio_codec = CODEC_OPUS,
@@ -153,14 +106,22 @@ void oai_webrtc(ThreadTimer& timer) {
     peer_connection = peer_connection_create(&peer_connection_config);
     if (peer_connection == NULL) {
         printf("Failed to create peer connection");
+        return false;
     }
   
+    peer_connection_config.user_data = this;
     peer_connection_oniceconnectionstatechange(peer_connection,
-                                               oai_onconnectionstatechange_task);
-    peer_connection_onicecandidate(peer_connection, oai_on_icecandidate_task);
+                                               onConnectionStateChange);
+    peer_connection_onicecandidate(peer_connection, onIceCandidate);
     peer_connection_create_offer(peer_connection);
-    peer_connection_ondatachannel(peer_connection, on_message, on_open, on_close);
-    
+    peer_connection_ondatachannel(peer_connection, onMessage, onOpen, onClose);
+    return true;
+}
+
+WebRTCManager::WebRTCManager(ThreadTimer& timer) : timer(timer) {
+}
+
+void WebRTCManager::loop() {
     //timer.set(10, oai_connection_timeout);
     //timer.start();
     while (1) {

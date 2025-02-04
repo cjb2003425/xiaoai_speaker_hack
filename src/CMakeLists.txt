@@ -3,7 +3,7 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Define source files
-set(SRC "webrtc.cpp" "main.cpp" "http.cpp" "media.cpp" "websockets.cpp" "utils.cpp")
+set(SRC "WebRTCManager.cpp" "main.cpp" "http.cpp" "media.cpp" "WebSocketClient.cpp" "utils.cpp" "ubus.cpp")
 
 # Add the flag for all targets
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")

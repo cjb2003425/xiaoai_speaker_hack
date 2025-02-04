@@ -3,6 +3,7 @@
 #include <string.h>
 #include <curl/curl.h>
 #include <string>
+#include "utils.h"
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -54,8 +55,16 @@ int oai_http_request(const char *offer, char *answer) {
         return -1;
     }
 
-    std::string base_url = "https://api.example.com"; // Temporary stub
-    std::string api_key = "dummy_key"; // Temporary stub
+    std::string base_url;
+    std::string api_key;
+
+    if (!get_openai_baseurl(base_url) != 0) {
+        return -1;
+    }
+
+    if (!get_openai_key(api_key) != 0) {
+        return -1;
+    }
 
     if (base_url.empty() || api_key.empty()) { // Temporary check
         fprintf(stderr, "%s: Failed to retrieve OpenAI API credentials\n", LOG_TAG);
