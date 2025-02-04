@@ -21,9 +21,8 @@ static struct my_conn {
 
 static struct lws_context *context;
 static int port = 443, ssl_connection = LCCSCF_USE_SSL;
-static std::string server_address;
-static std::string pro = "openai-websockets-protocol";
 
+static void connect_client(lws_sorted_usec_list_t *sul);
 /*
  * The retry and backoff policy we want to use for our client connections
  */
@@ -41,51 +40,42 @@ static const lws_retry_bo_t retry = {
 	.jitter_percent			= 20,
 };
 
-/*
- * Scheduled sul callback that starts the connection attempt
- */
-
-static void
-connect_client(lws_sorted_usec_list_t *sul)
-{
-	struct my_conn *mco = lws_container_of(sul, struct my_conn, sul);
-	struct lws_client_connect_info i;
-
-	memset(&i, 0, sizeof(i));
-
-	i.context = context;
-	i.port = port;
-	i.address = server_address.c_str();
-	i.path = "/";
-	i.host = i.address;
-	i.origin = i.address;
-	i.ssl_connection = ssl_connection;
-	i.protocol = pro.c_str();
-	i.local_protocol_name = "lws-minimal-client";
-	i.pwsi = &mco->wsi;
-	i.retry_and_idle_policy = &retry;
-	i.userdata = mco;
-
-	if (!lws_client_connect_via_info(&i))
-		/*
-		 * Failed... schedule a retry... we can't use the _retry_wsi()
-		 * convenience wrapper api here because no valid wsi at this
-		 * point.
-		 */
-		if (lws_retry_sul_schedule(context, 0, sul, &retry,
-					   connect_client, &mco->retry_count)) {
-			lwsl_err("%s: connection attempts exhausted\n", __func__);
-		}
-}
-
-static int
-callback_websockets(struct lws *wsi, enum lws_callback_reasons reason,
+static int callback_websockets(struct lws *wsi, enum lws_callback_reasons reason,
 		 void *user, void *in, size_t len)
 {
 	struct my_conn *mco = (struct my_conn *)user;
 
 	switch (reason) {
+    case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER: {
+        lwsl_err("Append handshake headers\n");
+        unsigned char **p = (unsigned char **)in, *end = (*p) + len;
 
+        // Example: Add authorization header
+        std::string api_key;
+        if (get_openai_key(api_key) != 0) {
+            lwsl_err("Failed to get OpenAI API Key\n");
+            return -1;
+        }
+        std::string auth_header = "Bearer " + api_key;
+        if (lws_add_http_header_by_name(wsi,
+                (const unsigned char *)"Authorization:",
+                (const unsigned char *)auth_header.c_str(),
+                auth_header.length(), p, end)) {
+            lwsl_err("Failed to append authorization header\n");
+            return -1;
+        }
+        
+        // Example: Add custom header
+        const char *custom_header = "realtime=v1";
+        if (lws_add_http_header_by_name(wsi,
+                (const unsigned char *)"OpenAI-Beta:",
+                (const unsigned char *)custom_header,
+                strlen(custom_header), p, end)) {
+            lwsl_err("Failed to append custom header\n");
+            return -1;
+        }
+        break;
+    }
 	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
 		lwsl_err("CLIENT_CONNECTION_ERROR: %s\n",
 			 in ? (char *)in : "(null)");
@@ -129,9 +119,58 @@ do_retry:
 }
 
 static const struct lws_protocols protocols[] = {
-	{ "lws-minimal-client", callback_websockets, 0, 0, 0, NULL, 0 },
+	{ "wss", callback_websockets, 0, 0, 0, NULL, 0 },
 	LWS_PROTOCOL_LIST_TERM
 };
+
+
+/*
+ * Scheduled sul callback that starts the connection attempt
+ */
+
+static void connect_client(lws_sorted_usec_list_t *sul)
+{
+	struct my_conn *mco = lws_container_of(sul, struct my_conn, sul);
+	struct lws_client_connect_info i;
+	std::string url;
+
+    if (get_openai_baseurl(url) != 0) {
+        return;
+    }
+    
+	size_t pos = url.find("://");
+    std::string hostname = url.substr(pos + 3, url.find('/', pos + 3) - (pos + 3));
+    std::string path = url.substr(url.find('/', pos + 3));
+
+    std::cout << "Hostname: " << hostname << std::endl;
+    std::cout << "Path: " << path << std::endl;
+
+	memset(&i, 0, sizeof(i));
+
+	i.context = context;
+	i.port = port;
+	i.address = hostname.c_str();
+	i.path = path.c_str();
+	i.host = i.address;
+	i.origin = i.address;
+	i.ssl_connection = ssl_connection;
+	i.protocol = NULL;
+	i.pwsi = &mco->wsi;
+	i.retry_and_idle_policy = &retry;
+	i.userdata = mco;
+
+	if (!lws_client_connect_via_info(&i))
+		/*
+		 * Failed... schedule a retry... we can't use the _retry_wsi()
+		 * convenience wrapper api here because no valid wsi at this
+		 * point.
+		 */
+		if (lws_retry_sul_schedule(context, 0, sul, &retry,
+					   connect_client, &mco->retry_count)) {
+			lwsl_err("%s: connection attempts exhausted\n", __func__);
+		}
+}
+
 
 int oai_websockets()
 {
