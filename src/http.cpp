@@ -58,11 +58,11 @@ int oai_http_request(const char *offer, char *answer) {
     std::string base_url;
     std::string api_key;
 
-    if (!get_openai_baseurl(base_url) != 0) {
+    if (!get_openai_baseurl(base_url)) {
         return -1;
     }
 
-    if (!get_openai_key(api_key) != 0) {
+    if (!get_openai_key(api_key)) {
         return -1;
     }
 

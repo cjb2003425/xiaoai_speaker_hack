@@ -35,7 +35,7 @@ void WebRTCManager::onMessage(char* msg, size_t len, void* userdata, uint16_t si
     try {
         // Parse the JSON message
         json event = json::parse(json_data);
-        //std::cout << "message type is " << event["type"] << std::endl;
+        std::cout << "message type is " << event["type"] << std::endl;
         if (event["type"] == "session.created") {
             manager->session = event["session"];
             //std::cout << json_data << std::endl;

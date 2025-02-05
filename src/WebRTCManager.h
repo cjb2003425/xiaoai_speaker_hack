@@ -39,7 +39,6 @@ private:
     static void onOpen(void* userdata);
     static void onClose(void* userdata);
     static void onMessage(char* msg, size_t len, void* userdata, uint16_t sid);
-    static void onMessage(const char* msg, size_t len, uint16_t sid);
     static void onConnectionStateChange(PeerConnectionState state, void *user_data);
     static void onIceCandidate(char* description, void *user_data);
     

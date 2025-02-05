@@ -71,8 +71,7 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
 
         // Example: Add authorization header
         std::string api_key;
-        if (get_openai_key(api_key) != 0) {
-            lwsl_err("Failed to get OpenAI API Key\n");
+        if (!get_openai_key(api_key)) {
             return -1;
         }
         std::string auth_header = "Bearer " + api_key;
@@ -153,7 +152,7 @@ void WebSocketClient::connectClient(lws_sorted_usec_list_t *sul)
 	struct lws_client_connect_info i;
 	std::string url;
 
-    if (get_openai_baseurl(url) != 0) {
+    if (!get_openai_baseurl(url)) {
         return;
     }
     
@@ -198,7 +197,7 @@ int WebSocketClient::connect()
 	int n = 0;
 
 	memset(&info, 0, sizeof info);
-	lwsl_user("LWS minimal ws client\n");
+	std::cout << "WebSocketClient connect!" << std::endl;
 
 	info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 	info.port = CONTEXT_PORT_NO_LISTEN; /* we do not run any server */
