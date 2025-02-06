@@ -42,7 +42,7 @@ void RealTimeClient::onMessage(std::string& message) {
     try {
         // Parse the JSON message
         json event = json::parse(message);
-      	std::cout << "message type is " << event["type"] << std::endl;
+        std::cout << "message type is " << event["type"] << std::endl;
         if (event["type"] == "session.created") {
             session = event["session"];
             std::cout << message << std::endl;

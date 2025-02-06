@@ -37,9 +37,9 @@ private:
         struct lws *wsi;               // Related wsi if any
         struct lws_context *context;
         struct lws_ring * ring;
-	    pthread_mutex_t lock_ring; /* serialize access to the ring buffer */
-	    uint32_t tail;
-	    bool established;
+        pthread_mutex_t lock_ring; /* serialize access to the ring buffer */
+        uint32_t tail;
+        bool established;
     };
     // Private members
     ConnectionInfo mConnectionInfo;
