@@ -1,5 +1,4 @@
 #include <string>
-#include "peer.h"
 
 #define LOG_TAG "realtimeapi-sdk"
 class ThreadTimer; 

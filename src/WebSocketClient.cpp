@@ -10,10 +10,13 @@
 
 using json = nlohmann::json;
 
+
+struct msg {
+	void *payload; /* is malloc'd */
+	size_t len;
+};
+
 const uint32_t WebSocketClient::backoff_ms[BACKOFF_MS_NUM] = { 1000, 2000, 3000, 4000, 5000 };
-nlohmann::json WebSocketClient::session;
-WebSocketClient::ConnectionInfo WebSocketClient::mConnectionInfo;
-struct lws_context * WebSocketClient::context = nullptr;
 
 const lws_retry_bo_t WebSocketClient::retry = {
 	.retry_ms_table			= backoff_ms,
@@ -30,41 +33,32 @@ void WebSocketClient::updateSession() {
 	session["turn_detection"] = nullptr;
 }
 
-void WebSocketClient::onMessage(const char* message, size_t len) {
-	std::string json_data = std::string(message, len);
-    try {
-        // Parse the JSON message
-        json event = json::parse(json_data);
-      	std::cout << "message type is " << event["type"] << std::endl;
-        if (event["type"] == "session.created") {
-            session = event["session"];
-            std::cout << json_data << std::endl;
-        } else if (event["type"] == "session.updated") {
-            session = event["session"];
-        } else if (event["type"] == "conversation.item.created") {
-        } else if (event["type"] == "response.audio_transcript.delta") {
-            //std::cout << event["delta"] << std::endl;
-        } else if (event["type"] == "response.audio_transcript.done") {
-            std::cout << event["transcript"] << std::endl;
-        } else if (event["type"] == "response.done") {
-            std::cout << event["response"]["usage"] << std::endl;
-        } else if (event["type"] == "error") {
-            std::cout << json_data << std::endl;
-        } else {
-            //std::cout << json_data << std::endl;
-        }
-    } catch (json::parse_error& e) {
-        std::cerr << "JSON parse error: " << e.what() << std::endl;
-    }
+void WebSocketClient::destroy_message(void *_msg)
+{
+	struct msg *msg = static_cast<struct msg *>(_msg);
 
+	free(msg->payload);
+	msg->payload = NULL;
+	msg->len = 0;
 }
 
 int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
 		 void *user, void *in, size_t len)
 {
 	ConnectionInfo* con = static_cast<ConnectionInfo*>(user);
+	lws_context *context = lws_get_context(wsi);
+	WebSocketClient* client = static_cast<WebSocketClient*>(lws_context_user(context));
+	const struct msg *pmsg;
+	int m = 0;
 
 	switch (reason) {
+	case LWS_CALLBACK_PROTOCOL_DESTROY:
+		if (con->ring)
+			lws_ring_destroy(con->ring);
+
+		pthread_mutex_destroy(&con->lock_ring);
+
+		return 0;
     case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER: {
         lwsl_err("Append handshake headers\n");
         unsigned char **p = (unsigned char **)in, *end = (*p) + len;
@@ -102,14 +96,51 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
 
 	case LWS_CALLBACK_CLIENT_RECEIVE:
 		lwsl_err("CLIENT_CONNECTION_RECEIVE\n");
-		onMessage((const char*)in, len);
+		if (client) {
+			std::string data = std::string((char*)in, len);
+			client->onMessage(data);
+		}
 		break;
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
+		con->established = 1;
 		lwsl_user("%s: established\n", __func__);
 		break;
 
+	case LWS_CALLBACK_CLIENT_WRITEABLE:
+		pthread_mutex_lock(&con->lock_ring); /* --------- ring lock { */
+		pmsg = static_cast<const msg*>(lws_ring_get_element(con->ring, &con->tail));
+		if (!pmsg)
+			goto skip;
+
+		/* notice we allowed for LWS_PRE in the payload already */
+		m = lws_write(wsi, ((unsigned char *)pmsg->payload) + LWS_PRE,
+			      pmsg->len, LWS_WRITE_TEXT);
+		if (m < (int)pmsg->len) {
+			pthread_mutex_unlock(&con->lock_ring); /* } ring lock */
+			lwsl_err("ERROR %d writing to ws socket\n", m);
+			return -1;
+		}
+
+		lws_ring_consume_single_tail(con->ring, &con->tail, 1);
+
+		/* more to do for us? */
+		if (lws_ring_get_element(con->ring, &con->tail))
+			/* come back as soon as we can write more */
+			lws_callback_on_writable(wsi);
+
+skip:
+		pthread_mutex_unlock(&con->lock_ring); /* } ring lock ------- */
+		break;
+
+
 	case LWS_CALLBACK_CLIENT_CLOSED:
+		con->established = 0;
 		goto do_retry;
+
+	case LWS_CALLBACK_EVENT_WAIT_CANCELLED:
+		if (con && con->wsi && con->established)
+			lws_callback_on_writable(con->wsi);
+		break;
 
 	default:
 		break;
@@ -165,7 +196,7 @@ void WebSocketClient::connectClient(lws_sorted_usec_list_t *sul)
 
 	memset(&i, 0, sizeof(i));
 
-	i.context = context;
+	i.context = mco->context;
 	i.port = PORT;
 	i.address = hostname.c_str();
 	i.path = path.c_str();
@@ -183,14 +214,14 @@ void WebSocketClient::connectClient(lws_sorted_usec_list_t *sul)
 		 * convenience wrapper api here because no valid wsi at this
 		 * point.
 		 */
-		if (lws_retry_sul_schedule(context, 0, sul, &retry,
+		if (lws_retry_sul_schedule(mco->context, 0, sul, &retry,
 					   connectClient, &mco->retry_count)) {
 			lwsl_err("%s: connection attempts exhausted\n", __func__);
 		}
 }
 
 
-int WebSocketClient::connect()
+bool WebSocketClient::init()
 {
 	struct lws_context_creation_info info;
 	const char *p;
@@ -203,21 +234,83 @@ int WebSocketClient::connect()
 	info.port = CONTEXT_PORT_NO_LISTEN; /* we do not run any server */
 	info.protocols = protocols;
 	info.fd_limit_per_thread = 1 + 1 + 1;
+	info.user = this;
 
-	context = lws_create_context(&info);
-	if (!context) {
+	mConnectionInfo.context = lws_create_context(&info);
+	if (!mConnectionInfo.context) {
 		lwsl_err("lws init failed\n");
-		return 1;
+		return true;
 	}
 
 	/* schedule the first client connection attempt to happen immediately */
-	lws_sul_schedule(context, 0, &mConnectionInfo.sul, connectClient, 1);
+    lws_sul_schedule(mConnectionInfo.context, 0, &mConnectionInfo.sul, connectClient, 1);
+}
 
-	while (n >= 0)
-		n = lws_service(context, 0);
+bool WebSocketClient::loop() {
+	int n = 0;
+	while (n >= 0 && !quitRequest)
+		n = lws_service(mConnectionInfo.context, 0);
+	return true;
+}
 
-	lws_context_destroy(context);
-	lwsl_user("Completed\n");
+WebSocketClient::WebSocketClient() {
+	memset(&mConnectionInfo, 0, sizeof(mConnectionInfo));
+	mConnectionInfo.ring = lws_ring_create(sizeof(struct msg), 8,
+				    destroy_message);
+	pthread_mutex_init(&mConnectionInfo.lock_ring, NULL);
+};
 
-	return 0;
+WebSocketClient::~WebSocketClient() {
+	if (mConnectionInfo.ring) {
+		lws_ring_destroy(mConnectionInfo.ring);
+	}
+
+	if (mConnectionInfo.context) {
+		lws_context_destroy(mConnectionInfo.context);
+	}
+	pthread_mutex_destroy(&mConnectionInfo.lock_ring);
+}
+
+bool WebSocketClient::sendMessage(const std::string& message) {
+	size_t len = message.length();
+	struct msg amsg;
+	int index = 1;
+	if (!mConnectionInfo.established) {
+		return false;
+	}
+
+	pthread_mutex_lock(&mConnectionInfo.lock_ring); /* --------- ring lock { */
+
+	/* only create if space in ringbuffer */
+	int n = (int)lws_ring_get_count_free_elements(mConnectionInfo.ring);
+	if (!n) {
+		return false;
+	}
+
+	amsg.payload = malloc(LWS_PRE + len);
+	if (!amsg.payload) {
+		lwsl_user("OOM: dropping\n");
+		return false;
+	}
+	n = lws_snprintf((char *)amsg.payload + LWS_PRE, len,
+		         "%s",
+		         message.c_str());
+	amsg.len = n;
+	n = lws_ring_insert(mConnectionInfo.ring, &amsg, 1);
+	if (n != 1) {
+		destroy_message(&amsg);
+		lwsl_user("dropping!\n");
+	} else
+		/*
+		 * This will cause a LWS_CALLBACK_EVENT_WAIT_CANCELLED
+		 * in the lws service thread context.
+		 */
+		lws_cancel_service(mConnectionInfo.context);
+
+	pthread_mutex_unlock(&mConnectionInfo.lock_ring); /* } ring lock ------- */
+	return true;
+}
+
+void WebSocketClient::onMessage(std::string& message) {
+    RealTimeClient::onMessage(message);
 }

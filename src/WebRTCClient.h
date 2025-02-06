@@ -4,20 +4,21 @@
 #include <string>
 #include <atomic>
 #include <nlohmann/json.hpp>
-#include "main.h"
+#include "peer.h"
+#include "RealTimeClient.h"
 #include "ThreadTimer.hpp"
 
 // For convenience
 using json = nlohmann::json;
 
-class WebRTCManager {
+class WebRTCClient : public RealTimeClient {
 public:
-    WebRTCManager(ThreadTimer& timer);
-    ~WebRTCManager(){};
+    WebRTCClient(ThreadTimer& timer);
+    ~WebRTCClient();
     
-    void loop();
+    bool loop();
     bool init();
-    int sendMessage(const std::string& message);
+    bool sendMessage(const std::string& message);
     
 private:
     // Constants
@@ -27,9 +28,7 @@ private:
     
     // Member variables
     PeerConnection* peer_connection;
-    json session;
     json conversation;
-    std::atomic<bool> request_exit;
     ThreadTimer& timer;
     
     // Audio handling
@@ -46,6 +45,7 @@ private:
     void connectionTimeout();
     void initializePeerConnection();
     void cleanupPeerConnection();
+    void onMessage(std::string& message) override;
 };
 
 #endif // WEBRTC_H

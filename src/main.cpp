@@ -14,7 +14,7 @@
 #include "main.h"
 #include "utils.h"
 #include "WebSocketClient.h"
-#include "WebRTCManager.h"
+#include "WebRTCClient.h"
 
 using json = nlohmann::json;
 using namespace std;
@@ -25,6 +25,7 @@ string instruction_file_name = "/tmp/mico_aivs_lab/instruction.log";
 // Unordered map to store unique items by "id"
 unordered_map<string, json> items;
 string current_dialog_id;
+RealTimeClient *client = nullptr;
 
 int store(json& data) {
     string text;
@@ -36,11 +37,11 @@ int store(json& data) {
         if (data["header"]["name"] == "RecognizeResult" && data["payload"]["is_final"] == true) {
             text = data["payload"]["results"][0]["text"];
             cout << "final result:" << text << endl;
-            if (create_conversation_item(text, result)) {
-
+            if (client && client->create_conversation_item(text, result)) {
+                client->sendMessage(result);
             }
-            if (create_response(result)) {
-
+            if (client && client->create_response(result)) {
+                client->sendMessage(result);
             }
         }
         cout << data["header"]["name"] << endl;
@@ -188,14 +189,12 @@ int main(void) {
     oai_init_audio_capture();
     oai_init_audio_decoder();
     #ifdef USE_WEBRTC
-    WebRTCManager manager(timer);
-    if (manager.init()) {
-        manager.loop();
-    }
+    client = new WebRTCClient(timer);
     #else
-    WebSocketClient client;
-    client.connect();
+    client = new WebSocketClient();
     #endif
+    client->init();
+    client->loop();
     file_monitor.join();
     ubus_monitor.join();
     return 0;
