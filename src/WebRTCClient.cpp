@@ -14,6 +14,7 @@
 
 // For convenience
 using json = nlohmann::json;
+using namespace std;
 
 void WebRTCClient::onOpen(void* userdata) {
     WebRTCClient* client = static_cast<WebRTCClient*>(userdata);
@@ -26,7 +27,9 @@ void WebRTCClient::onOpen(void* userdata) {
 }
 
 void WebRTCClient::onClose(void* userdata) {
+    WebRTCClient* client = static_cast<WebRTCClient*>(userdata);
     printf("on close\n");
+    client->retryRequest = true;
 }
 
 void WebRTCClient::onMessage(char* msg, size_t len, void* userdata, uint16_t sid) {
@@ -36,7 +39,6 @@ void WebRTCClient::onMessage(char* msg, size_t len, void* userdata, uint16_t sid
 }
 
 void WebRTCClient::connectionTimeout() {
-    quitRequest = true;
 }
 
 void WebRTCClient::onConnectionStateChange(PeerConnectionState state,
@@ -49,7 +51,7 @@ void WebRTCClient::onConnectionStateChange(PeerConnectionState state,
         printf("Connection disconnected!\n");
     } else if (state == PEER_CONNECTION_CLOSED) {
         printf("Connection close!\n");
-        client->quitRequest = true;
+        client->retryRequest = true;
     } else if (state == PEER_CONNECTION_CONNECTED) {
     } else if (state == PEER_CONNECTION_COMPLETED) {
         printf("Connection completed!\n");
@@ -57,12 +59,12 @@ void WebRTCClient::onConnectionStateChange(PeerConnectionState state,
 }
 
 void WebRTCClient::onIceCandidate(char *description, void *user_data) {
-    WebRTCClient* manager = static_cast<WebRTCClient*>(user_data);
+    WebRTCClient* client = static_cast<WebRTCClient*>(user_data);
     char local_buffer[MAX_HTTP_OUTPUT_BUFFER + 1] = {0};
     while (oai_http_request(description, local_buffer) != 0) {
         sleep(5);
     }
-    peer_connection_set_remote_description(manager->peer_connection, local_buffer);
+    peer_connection_set_remote_description(client->peer_connection, local_buffer);
 }
 
 bool WebRTCClient::init() {
@@ -72,14 +74,16 @@ bool WebRTCClient::init() {
         .video_codec = CODEC_NONE,
         .datachannel = DATA_CHANNEL_STRING,
         .onaudiotrack = [](uint8_t *data, size_t size, void *userdata) -> void {
-            oai_audio_decode(data, size);
+            WebRTCClient* client = static_cast<WebRTCClient*>(userdata);
+            if (!client->mute) {
+                oai_audio_decode(data, size);
+            }
         },
         .onvideotrack = NULL,
         .on_request_keyframe = NULL,
-        .user_data = NULL,
+        .user_data = this,
     };
   
-    peer_init();
     peer_connection = peer_connection_create(&peer_connection_config);
     if (peer_connection == NULL) {
         printf("Failed to create peer connection");
@@ -95,34 +99,46 @@ bool WebRTCClient::init() {
     return true;
 }
 
+bool WebRTCClient::deinit() { 
+    if (peer_connection) {
+        peer_connection_destroy(peer_connection);
+        peer_connection = nullptr;
+    }
+    return true;
+}
+
 WebRTCClient::WebRTCClient(ThreadTimer& timer) : 
     timer(timer) {
-
+    peer_init();
 }
 
 WebRTCClient::~WebRTCClient() {
-    if (peer_connection) {
-        peer_connection_destroy(peer_connection);
-        peer_deinit();
-    }
+    peer_deinit();
 };
 
 bool WebRTCClient::loop() {
-    //timer.set(10, oai_connection_timeout);
-    //timer.start();
     while (1) {
         peer_connection_loop(peer_connection);
         usleep(10000);
         if (quitRequest) {
             std::cout << "connection destroy" << std::endl;
+            quitRequest = false;
             break;
         }
+
+        if (retryRequest) {
+            init();
+            retryRequest = false;
+        }
     }
-    //timer.stop();
     return true;
 }
 
 bool WebRTCClient::sendMessage(const std::string& message) {
+    if (peer_connection_datachannel_send(peer_connection, const_cast<char*>(message.c_str()), message.size()) < 0) {
+        std::cout << "send message failed" << std::endl;
+        return false;
+    }
     return true;
 }
 

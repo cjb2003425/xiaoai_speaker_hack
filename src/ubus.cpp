@@ -9,6 +9,7 @@ extern "C" {
 #include <libubox/blobmsg_json.h>
 }
 #include "ubus.h"
+#include "main.h"
 
 using json = nlohmann::json;
 using namespace std;
@@ -161,11 +162,18 @@ static void ubus_monitor_cb(struct ubus_context *ctx, uint32_t seq, struct blob_
     data = ubus_get_monitor_data(tb[UBUS_MONITOR_DATA]);
     json json_data = json::parse(data);
     cout << "--> " << json_data["method"] << endl;
-    if (wakeup_first && json_data["method"] == "player_wakeup") {
-        lock_guard<mutex> lock(wakeup_mtx);
-        wakeup_occurred = true; 
-        wakeup_cond.notify_all();
-        wakeup_first = false;
+    if (json_data["data"]["action"] == "start" && json_data["method"] == "player_wakeup") {
+        RealTimeClient* client = oai_get_client();
+        if (client) {
+            client->cancelResponse();
+        }
+
+        if (wakeup_first) {
+            lock_guard<mutex> lock(wakeup_mtx);
+            wakeup_occurred = true; 
+            wakeup_cond.notify_all();
+            wakeup_first = false;
+        }
     }
     free(data);
     fflush(stdout);

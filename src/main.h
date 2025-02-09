@@ -1,9 +1,9 @@
 #include <string>
-
+#include "RealTimeClient.h"
 #define LOG_TAG "realtimeapi-sdk"
 class ThreadTimer; 
 
-void oai_wifi(void);
+RealTimeClient* oai_get_client(void);
 void oai_init_audio_capture(void);
 void oai_init_audio_decoder(void);
 void oai_init_audio_encoder();

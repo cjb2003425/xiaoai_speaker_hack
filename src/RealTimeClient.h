@@ -3,6 +3,7 @@
 
 #include <string>
 #include <nlohmann/json.hpp>
+#include "Conversation.h"
 
 // For convenience
 using json = nlohmann::json;
@@ -18,12 +19,19 @@ public:
     virtual bool sendMessage(const std::string& message) = 0;
     
     virtual void onMessage(std::string& message);
-    bool create_conversation_item(std::string& message, std::string& result);
-    bool create_response(std::string& result);
+    void createConversationitem(std::string& message);
+    void createResponse();
+    void updateSession();
+    void cancelResponse();
 
 protected:
     json session;
     bool quitRequest;
+    bool retryRequest;
+    bool talking;
+    bool mute;
+    Conversation conversation;
+
     // Additional shared methods can be added here
 };
 

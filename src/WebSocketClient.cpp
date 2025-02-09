@@ -29,10 +29,6 @@ const lws_retry_bo_t WebSocketClient::retry = {
     .jitter_percent            = 20,
 };
 
-void WebSocketClient::updateSession() {
-    session["turn_detection"] = nullptr;
-}
-
 void WebSocketClient::destroy_message(void *_msg)
 {
     struct msg *msg = static_cast<struct msg *>(_msg);

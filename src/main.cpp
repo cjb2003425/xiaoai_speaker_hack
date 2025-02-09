@@ -37,11 +37,9 @@ int store(json& data) {
         if (data["header"]["name"] == "RecognizeResult" && data["payload"]["is_final"] == true) {
             text = data["payload"]["results"][0]["text"];
             cout << "final result:" << text << endl;
-            if (client && client->create_conversation_item(text, result)) {
-                client->sendMessage(result);
-            }
-            if (client && client->create_response(result)) {
-                client->sendMessage(result);
+            if (client && text.length() > 0) {
+                client->createConversationitem(text);
+                client->createResponse();
             }
         }
         cout << data["header"]["name"] << endl;
@@ -166,8 +164,8 @@ void loadEnvConfig(const std::string& filePath) {
     file.close();
 }
 
-void oai_send_message(PeerConnection *peer_connection, std::string& message) {
-
+RealTimeClient* oai_get_client(void) {
+    return client;
 }
 
 int main(void) {
@@ -188,7 +186,7 @@ int main(void) {
     }
     oai_init_audio_capture();
     oai_init_audio_decoder();
-    #ifdef USE_WEBRTC
+    #ifndef USE_WEBRTC
     client = new WebRTCClient(timer);
     #else
     client = new WebSocketClient();

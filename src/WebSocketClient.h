@@ -27,7 +27,6 @@ private:
 
     static void connectClient(lws_sorted_usec_list_t *sul);
     static void destroy_message(void *_msg);
-    void updateSession();
     void onMessage(std::string& message) override;
 
     // Data structures

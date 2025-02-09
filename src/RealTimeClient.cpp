@@ -18,14 +18,38 @@ const std::string CONVERSATION_ITEM_TEMPLATE = R"(
 }
 )";
 
-const std::string RESPONSE_TEMPLATE = R"({
+const std::string SESSION_UPDATE_TEMPLATE = R"({
+    "type": "session.update",
+    "session": {
+        "modalities": ["text", "audio"],
+        "voice": "sage",
+        "input_audio_format": "pcm16",
+        "output_audio_format": "pcm16",
+        "input_audio_transcription":null,
+        "turn_detection":null,
+        "tools": [],
+        "tool_choice": "auto",
+        "temperature": 0.8,
+        "max_response_output_tokens": "inf"
+    }
+})";
+
+const std::string RESPONSE_CREATE_TEMPLATE = R"({
     "type": "response.create",
     "response": {
         "modalities": [ "text", "audio"]
     }
 })";
 
-RealTimeClient::RealTimeClient() : quitRequest(false) {
+const std::string RESPONSE_CANCEL_TEMPLATE = R"({
+    "type": "response.cancel"
+})";
+
+RealTimeClient::RealTimeClient() : 
+    quitRequest(false), 
+    retryRequest(false),
+    talking(false),
+    mute(false) {
     // Constructor implementation
 }
 
@@ -40,49 +64,53 @@ bool RealTimeClient::quit() {
 
 void RealTimeClient::onMessage(std::string& message) {
     try {
+        Event event;
         // Parse the JSON message
-        json event = json::parse(message);
-        std::cout << "message type is " << event["type"] << std::endl;
-        if (event["type"] == "session.created") {
-            session = event["session"];
-            std::cout << message << std::endl;
-        } else if (event["type"] == "session.updated") {
-            session = event["session"];
-        } else if (event["type"] == "conversation.item.created") {
-        } else if (event["type"] == "response.audio_transcript.delta") {
-            //std::cout << event["delta"] << std::endl;
-        } else if (event["type"] == "response.audio_transcript.done") {
-            std::cout << event["transcript"] << std::endl;
-        } else if (event["type"] == "response.done") {
-            std::cout << event["response"]["usage"] << std::endl;
-        } else if (event["type"] == "error") {
-            std::cout << message << std::endl;
-        } else {
-            //std::cout << json_data << std::endl;
-        }
+        json eventJson = json::parse(message);
+        event.event_id = eventJson["event_id"];
+        event.type = eventJson["type"];
+        event.data = eventJson;
+        
+        // Process the event
+        conversation.processEvent(event);
     } catch (json::parse_error& e) {
         std::cerr << "JSON parse error: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error processing event: " << e.what() << std::endl;
     }
-
 }
 
-bool RealTimeClient::create_conversation_item(std::string& message, std::string& result) {
+void RealTimeClient::createConversationitem(std::string& message) {
     if (message.empty()) {
-        throw std::invalid_argument("Message cannot be empty");
+        return;
     }
 
     try {
         json item = json::parse(CONVERSATION_ITEM_TEMPLATE);
         item["item"]["content"][0]["text"] = message;
-        result = item.dump();
+        sendMessage(item.dump());
     } catch (const json::parse_error& e) {
         std::cout << "Failed to parse conversation item JSON: " + std::string(e.what());
-        return false;
     }
-    return true;
 }
 
-bool RealTimeClient::create_response(std::string& result) {
-    result = RESPONSE_TEMPLATE;
-    return true;
+void RealTimeClient::createResponse() {
+    sendMessage(RESPONSE_CREATE_TEMPLATE);
+}
+
+void RealTimeClient::cancelResponse() {
+    if (talking) {
+        std::cout << "Cancel response" << std::endl;
+        mute  = true;
+        sendMessage(RESPONSE_CANCEL_TEMPLATE);
+    }
+}
+
+void RealTimeClient::updateSession() {
+    try {
+        json item = json::parse(SESSION_UPDATE_TEMPLATE);
+        sendMessage(item.dump());
+    } catch (const json::parse_error& e) {
+        std::cout << "Failed to parse conversation item JSON: " + std::string(e.what());
+    }
 }

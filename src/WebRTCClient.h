@@ -18,6 +18,7 @@ public:
     
     bool loop();
     bool init();
+    bool deinit();
     bool sendMessage(const std::string& message);
     
 private:

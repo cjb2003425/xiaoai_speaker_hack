@@ -38,7 +38,7 @@ static size_t http_response_handler(void *contents, size_t size, size_t nmemb, v
 
 // Function to send HTTP POST request
 int oai_http_request(const char *offer, char *answer) {
-    int ret = 0;
+    int ret = -1;
     CURL *curl;
     CURLcode res;
     struct curl_slist *headers = NULL;
