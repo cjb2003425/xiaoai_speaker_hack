@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <nlohmann/json.hpp> // Include nlohmann/json for JSON handling
 #include <string.h>
-#include "utils.h"
+#include "Utils.h"
 #include "WebSocketClient.h"
 
 using json = nlohmann::json;
@@ -61,7 +61,7 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
 
         // Example: Add authorization header
         std::string api_key;
-        if (!get_openai_key(api_key)) {
+        if (!Utils::get_openai_key(api_key)) {
             return -1;
         }
         std::string auth_header = "Bearer " + api_key;
@@ -179,7 +179,7 @@ void WebSocketClient::connectClient(lws_sorted_usec_list_t *sul)
     struct lws_client_connect_info i;
     std::string url;
 
-    if (!get_openai_baseurl(url)) {
+    if (!Utils::get_openai_baseurl(url)) {
         return;
     }
     

@@ -11,7 +11,6 @@
 #include <nlohmann/json.hpp>
 
 struct Event {
-    std::string event_id;
     std::string type;
     nlohmann::json data;
 };
@@ -23,7 +22,7 @@ struct Response {
 
 struct ItemContentDeltaType {
     std::string text;
-    std::vector<std::string> audio;
+    std::vector<int16_t> audio;
     std::string arguments;
     std::string transcript;
 };
@@ -31,7 +30,7 @@ struct ItemContentDeltaType {
 struct Formatted {
     std::string text;
     std::string transcript;
-    std::string audio;
+    std::vector<int16_t> audio;
     std::string arguments;
 };
 // Define the Item structure
@@ -65,11 +64,11 @@ public:
 
 private:
     // Private Members
+    int frequence;
     std::map<std::string, ItemType> itemLookup;
     std::vector<ItemType> items;
     std::map<std::string, Response> responseLookup;
     std::vector<Response> responses;
-    std::map<std::string, std::map<std::string, std::string>> queuedSpeechItems;
     std::map<std::string, std::map<std::string, std::string>> queuedTranscriptItems;
 
     // Event Processors

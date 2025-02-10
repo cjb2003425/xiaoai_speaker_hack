@@ -8,29 +8,26 @@
 #include <ctime>
 #include <algorithm> 
 #include "Conversation.h"
+#include "Utils.h"
 
 void Conversation::clear() {
     itemLookup.clear();
     items.clear();
     responseLookup.clear();
     responses.clear();
-    queuedSpeechItems.clear();
     queuedTranscriptItems.clear();
 }
 
 std::pair<ItemType*, ItemContentDeltaType*> Conversation::processEvent(const Event& event) {
-    if (event.event_id.empty()) {
-        std::cerr << "Missing \"event_id\" on event" << std::endl;
-        throw std::invalid_argument("Missing \"event_id\" on event");
-    }
     if (event.type.empty()) {
         std::cerr << "Missing \"type\" on event" << std::endl;
         throw std::invalid_argument("Missing \"type\" on event");
     }
     auto it = EventProcessors.find(event.type);
     if (it == EventProcessors.end()) {
-        throw std::invalid_argument("Missing conversation event processor for \"" + event.type + "\"");
+        return std::make_pair(nullptr, nullptr);
     }
+    std::cout << "event: " << event.type << std::endl;
     return it->second(event);
 }
 
@@ -51,12 +48,6 @@ void Conversation::initializeEventProcessors() {
             newItem.id = item.at("id");
             newItem.formatted.text = "";
             newItem.formatted.transcript = "";
-            newItem.formatted.audio = "";
-
-            if (queuedSpeechItems.find(newItem.id) != queuedSpeechItems.end()) {
-                newItem.formatted.audio = queuedSpeechItems[newItem.id]["audio"];
-                queuedSpeechItems.erase(newItem.id);
-            }
 
             if (item.find("content") != item.end()) {
                 // Populate formatted text if it comes out on creation
@@ -97,7 +88,7 @@ void Conversation::initializeEventProcessors() {
                 throw std::invalid_argument("item.truncated: Item \"" + item_id + "\" not found");
             }
             ItemType& foundItem = it->second;
-            int endIndex = (audio_end_ms * 8000) / 1000;
+            int endIndex = (audio_end_ms * frequence) / 1000;
             foundItem.formatted.transcript = "";
             foundItem.formatted.audio.resize(endIndex);
             return std::make_pair(&foundItem, nullptr);
@@ -187,7 +178,6 @@ void Conversation::initializeEventProcessors() {
             if (part.find("text") != part.end()) {
                 content.text = part.at("text");
             } else if (part.find("audio") != part.end()) {
-                content.audio = part.at("audio").get<std::vector<std::string>>();
             }
 
             auto it = itemLookup.find(item_id);
@@ -219,6 +209,52 @@ void Conversation::initializeEventProcessors() {
             deltaPart->transcript = delta;
             return std::make_pair(&item, deltaPart);
         }},
+        {"response.audio.delta", [this](const Event& event) {
+            std::string item_id = event.data.at("item_id");
+            int content_index = std::stoi(event.data.at("content_index").get<std::string>());
+            std::string delta = event.data.at("delta");
+
+            auto it = itemLookup.find(item_id);
+            if (it == itemLookup.end()) {
+                throw std::runtime_error("response.audio_transcript.delta: Item '" + item_id + "' not found");
+            }
+
+            ItemType& item = it->second;
+            // Convert base64 to array buffer and then to Int16Array
+            std::vector<unsigned char> buffer = Utils::base64ToArrayBuffer(delta);
+            std::vector<int16_t> appendValues(buffer.begin(), buffer.end());
+            
+            // Merge arrays
+            std::vector<int16_t> mergedAudio = Utils::mergeInt16Arrays(
+                item.formatted.audio,
+                appendValues
+            );
+            item.formatted.audio = mergedAudio;
+            auto* deltaPart = new ItemContentDeltaType();
+            deltaPart->audio = appendValues;
+            return std::make_pair(&item, deltaPart);
+        }},
+        {"response.text.delta", [this](const Event& event) {
+            std::string item_id = event.data.at("item_id");
+            int content_index = std::stoi(event.data.at("content_index").get<std::string>());
+            std::string delta = event.data.at("delta");
+
+            auto it = itemLookup.find(item_id);
+            if (it == itemLookup.end()) {
+                throw std::runtime_error("response.audio_transcript.delta: Item '" + item_id + "' not found");
+            }
+
+            ItemType& item = it->second;
+            item.content[content_index].text += delta;
+            item.formatted.text += delta;
+            
+            auto* deltaPart = new ItemContentDeltaType();
+            deltaPart->text = delta;
+            return std::make_pair(&item, deltaPart);
+        }},
+        {"response.function_call_arguments.delta", [this](const Event& event) {
+            return std::make_pair(nullptr, nullptr);
+        }}
     };
 
 }

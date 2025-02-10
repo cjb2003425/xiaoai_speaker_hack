@@ -67,7 +67,6 @@ void RealTimeClient::onMessage(std::string& message) {
         Event event;
         // Parse the JSON message
         json eventJson = json::parse(message);
-        event.event_id = eventJson["event_id"];
         event.type = eventJson["type"];
         event.data = eventJson;
         

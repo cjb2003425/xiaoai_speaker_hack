@@ -3,7 +3,7 @@
 #include <string.h>
 #include <curl/curl.h>
 #include <string>
-#include "utils.h"
+#include "Utils.h"
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -58,11 +58,11 @@ int oai_http_request(const char *offer, char *answer) {
     std::string base_url;
     std::string api_key;
 
-    if (!get_openai_baseurl(base_url)) {
+    if (!Utils::get_openai_baseurl(base_url)) {
         return -1;
     }
 
-    if (!get_openai_key(api_key)) {
+    if (!Utils::get_openai_key(api_key)) {
         return -1;
     }
 
