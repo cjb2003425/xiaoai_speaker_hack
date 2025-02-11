@@ -39,7 +39,7 @@ struct ItemType {
     std::string type;
     std::string role;
     std::string status;
-    std::vector<ItemContentDeltaType>content;
+    std::vector<std::shared_ptr<ItemContentDeltaType>>content;
     std::string name;
     std::string call_id;
     std::string arguments;
@@ -49,30 +49,27 @@ struct ItemType {
 
 class Conversation {
 public:
-    Conversation() {
-        initializeEventProcessors();
-    }
+    Conversation(); 
     ~Conversation() = default;
     void clear();
 
     // Public Methods
-    std::pair<ItemType*, ItemContentDeltaType*> processEvent(const Event& event); 
+    std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>> processEvent(const Event& event); 
+    bool registerCallback(const std::string& type, std::function<std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>>(const Event&)> callback);
 
-    ItemType* getItem(const std::string& id);
-    std::vector<ItemType> getItems() const;
-
+    std::shared_ptr<ItemType> getItem(const std::string& id);
 
 private:
     // Private Members
     int frequence;
-    std::map<std::string, ItemType> itemLookup;
-    std::vector<ItemType> items;
-    std::map<std::string, Response> responseLookup;
-    std::vector<Response> responses;
+    std::map<std::string, std::shared_ptr<ItemType>> itemLookup;
+    std::vector<std::shared_ptr<ItemType>> items;
+    std::map<std::string, std::shared_ptr<Response>> responseLookup;
+    std::vector<std::shared_ptr<Response>> responses;
     std::map<std::string, std::map<std::string, std::string>> queuedTranscriptItems;
 
     // Event Processors
-    std::unordered_map<std::string, std::function<std::pair<ItemType*, ItemContentDeltaType*>(const Event&)>> EventProcessors; 
+    std::unordered_map<std::string, std::function<std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>>(const Event&)>> eventProcessors; 
 
     // Initialize Event Processors
     void initializeEventProcessors();

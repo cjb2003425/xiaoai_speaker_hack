@@ -50,7 +50,12 @@ RealTimeClient::RealTimeClient() :
     retryRequest(false),
     talking(false),
     mute(false) {
-    // Constructor implementation
+    conversation.registerCallback("session.created", [this](const Event& event) {
+            session = event.data;
+            std::cout << "session created" << std::endl;
+            updateSession(SESSION_UPDATE_TEMPLATE);
+            return std::make_pair(nullptr, nullptr);
+        });
 }
 
 RealTimeClient::~RealTimeClient() {
@@ -69,7 +74,9 @@ void RealTimeClient::onMessage(std::string& message) {
         json eventJson = json::parse(message);
         event.type = eventJson["type"];
         event.data = eventJson;
-        
+        std::cout << "event: " << event.type << std::endl;
+        std::cout << "data" << event.data.dump() << std::endl;
+
         // Process the event
         conversation.processEvent(event);
     } catch (json::parse_error& e) {
@@ -105,9 +112,9 @@ void RealTimeClient::cancelResponse() {
     }
 }
 
-void RealTimeClient::updateSession() {
+void RealTimeClient::updateSession(const std::string& msg) {
     try {
-        json item = json::parse(SESSION_UPDATE_TEMPLATE);
+        json item = json::parse(msg);
         sendMessage(item.dump());
     } catch (const json::parse_error& e) {
         std::cout << "Failed to parse conversation item JSON: " + std::string(e.what());

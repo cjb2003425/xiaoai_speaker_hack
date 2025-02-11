@@ -21,7 +21,7 @@ public:
     virtual void onMessage(std::string& message);
     void createConversationitem(std::string& message);
     void createResponse();
-    void updateSession();
+    void updateSession(const std::string& message);
     void cancelResponse();
 
 protected:
