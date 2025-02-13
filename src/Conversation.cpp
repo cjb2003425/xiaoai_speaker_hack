@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <chrono>
 #include <cstring>
 #include <functional>
 #include <ctime>
@@ -15,7 +16,6 @@ void Conversation::clear() {
     items.clear();
     responseLookup.clear();
     responses.clear();
-    queuedTranscriptItems.clear();
 }
 
 std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>> Conversation::processEvent(const Event& event) {
@@ -43,57 +43,43 @@ Conversation::Conversation() {
 void Conversation::initializeEventProcessors() {
     eventProcessors = {
         {"conversation.item.created", [this](const Event& event) {
+            std::cout << "conversation.item.created" << std::endl;
             const auto& item = event.data.at("item");
             std::shared_ptr<ItemType> newItem = std::make_shared<ItemType>();
             newItem->id = item.at("id");
             newItem->formatted.text = "";
             newItem->formatted.transcript = "";
+            newItem->status = item.at("status");
+            newItem->role = item.at("role");
+            newItem->type = item.at("type");
 
-            if (item.find("content") != item.end()) {
-                // Populate formatted text if it comes out on creation
-                if (item.at("type") == "text" || item.at("type") == "input_text") {
-                    newItem->formatted.text += item.at("text");
-                }
+            auto it = itemLookup.find(newItem->id);
+            if (it == itemLookup.end()) {
+                itemLookup[newItem->id] = newItem;
+                items.push_back(newItem);
             }
 
-            if (queuedTranscriptItems.find(newItem->id) != queuedTranscriptItems.end()) {
-                newItem->formatted.transcript = queuedTranscriptItems[newItem->id]["transcript"];
-                queuedTranscriptItems.erase(newItem->id);
+            if (newItem->role == "assistant") {
+                newItem->time = std::chrono::steady_clock::now();
             }
-
-            if (newItem->type == "message") {
-                if (newItem->role == "user") {
-                    newItem->status = "completed";
-                } else {
-                    newItem->status = "in_progress";
-                }
-            } else if (newItem->type == "function_call") {
-                newItem->formatted.arguments = item.at("arguments");
-                newItem->status = "in_progress";
-            } else if (newItem->type == "function_call_output") {
-                newItem->status = "completed";
-                newItem->formatted.arguments = item.at("output");
-            }
-
-            itemLookup[newItem->id] = newItem;
-            items.push_back(newItem);
-
             return std::make_pair(newItem, nullptr);
         }},
         {"conversation.item.truncated", [this](const Event& event) {
+            std::cout << "conversation.item.truncated" << std::endl;
             const std::string& item_id = event.data.at("item_id");
-            int audio_end_ms = std::stoi(event.data.at("audio_end_ms").get<std::string>());
+            int audio_end_ms = event.data.at("audio_end_ms").get<int>();
             auto it = itemLookup.find(item_id);
             if (it == itemLookup.end()) {
                 throw std::invalid_argument("item.truncated: Item \"" + item_id + "\" not found");
             }
             std::shared_ptr<ItemType> foundItem = it->second;
-            int endIndex = (audio_end_ms * frequence) / 1000;
+            int endIndex = (audio_end_ms * frequency) / 1000;
             foundItem->formatted.transcript = "";
             foundItem->formatted.audio.resize(endIndex);
             return std::make_pair(foundItem, nullptr);
         }},
         {"conversation.item.deleted", [this](const Event& event) {
+            std::cout << "conversation.item.deleted" << std::endl;
             const std::string& item_id = event.data.at("item_id");
             auto it = itemLookup.find(item_id);
             if (it == itemLookup.end()) {
@@ -108,22 +94,7 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(foundItem, nullptr);
         }},
         {"conversation.item.input_audio_transcription.completed", [this](const Event& event) {
-            const std::string& item_id = event.data.at("item_id");
-            int content_index = std::stoi(event.data.at("content_index").get<std::string>());
-            std::string transcript = event.data.at("transcript");
-            std::string formattedTranscript = transcript.empty() ? " " : transcript;
-            auto it = itemLookup.find(item_id);
-
-            if (it == itemLookup.end()) {
-                throw std::invalid_argument("item.deleted: Item \"" + item_id + "\" not found");
-            }
-            std::shared_ptr<ItemType> foundItem = it->second;
-            foundItem->content[content_index]->transcript = transcript;
-            foundItem->formatted.transcript = formattedTranscript;
-
-            auto delta = std::make_shared<ItemContentDeltaType>();
-            delta->transcript = transcript;
-            return std::make_pair(foundItem, delta);
+            return std::make_pair(nullptr, nullptr);
         }},
         {"input_audio_buffer.speech_started", [this](const Event& event) {
             return std::make_pair(nullptr, nullptr);
@@ -132,6 +103,7 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(nullptr, nullptr);
         }},
         {"response.created", [this](const Event& event) {
+            std::cout << "response.created" << std::endl;
             std::shared_ptr<Response> response = std::make_shared<Response>();
             const auto& newResponse = event.data.at("response");
             response->id = newResponse.at("id");
@@ -143,6 +115,7 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(nullptr, nullptr);
         }},
         {"response.output_item.added", [this](const Event& event) {
+            std::cout << "response.output_item.added" << std::endl;
             std::string response_id = event.data.at("response_id");
             const auto& item = event.data.at("item");
             const std::string& item_id = item.at("id");
@@ -151,12 +124,13 @@ void Conversation::initializeEventProcessors() {
             if (it == responseLookup.end()) {
                 throw std::runtime_error("response.output_item.added: Response '" + response_id + "' not found");
             }
-
             std::shared_ptr<Response> response = it->second;
             response->output.push_back(item_id);
+
             return std::make_pair(nullptr, nullptr);
         }},
         {"response.output_item.done", [this](const Event& event) {
+            std::cout << "response.output_item.done" << std::endl;
             const auto& item = event.data.at("item");
             const std::string& item_id = item.at("id");
             const std::string& status = item.at("status");
@@ -171,6 +145,7 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(found, nullptr);
         }},
         {"response.content_part.added", [this](const Event& event) {
+            std::cout << "response.content_part.added" << std::endl;
             std::string item_id = event.data.at("item_id");
             const auto& part = event.data.at("part");
             std::shared_ptr<ItemContentDeltaType> content = std::make_shared<ItemContentDeltaType>();
@@ -192,6 +167,7 @@ void Conversation::initializeEventProcessors() {
 
         }},
         {"response.audio_transcript.delta", [this](const Event& event) {
+            std::cout << "response.audio_transcript.delta" << std::endl;
             std::string item_id = event.data.at("item_id");
             int content_index = event.data.at("content_index").get<int>();
             std::string delta = event.data.at("delta");
@@ -210,6 +186,7 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(item, deltaPart);
         }},
         {"response.audio.delta", [this](const Event& event) {
+            std::cout << "response.audio.delta" << std::endl;
             std::string item_id = event.data.at("item_id");
             int content_index = event.data.at("content_index").get<int>();
             std::string delta = event.data.at("delta");
@@ -235,6 +212,7 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(item, deltaPart);
         }},
         {"response.text.delta", [this](const Event& event) {
+            std::cout << "response.text.delta" << std::endl;
             std::string item_id = event.data.at("item_id");
             int content_index = event.data.at("content_index").get<int>();
             std::string delta = event.data.at("delta");
@@ -253,6 +231,34 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(item, deltaPart);
         }},
         {"response.function_call_arguments.delta", [this](const Event& event) {
+            std::cout << "response.function_call_arguments.delta" << std::endl;
+            return std::make_pair(nullptr, nullptr);
+        }},
+        {"response.audio.done", [this](const Event& event) {
+            std::cout << "response.audio.done" << std::endl;
+            return std::make_pair(nullptr, nullptr);
+        }},
+        {"response.audio_transcript.done", [this](const Event& event) {
+            std::cout << "response.audio_transcript.done" << std::endl;
+            return std::make_pair(nullptr, nullptr);
+        }},
+        {"response.content_part.done", [this](const Event& event) {
+            std::cout << "response.content_part.done" << std::endl;
+            return std::make_pair(nullptr, nullptr);
+        }},
+        {"output_audio_buffer.started", [this](const Event& event) {
+            std::cout << "response.audio.started" << std::endl;
+            isTalking = 1;
+            return std::make_pair(nullptr, nullptr);
+        }},
+        {"output_audio_buffer.stopped", [this](const Event& event) {
+            std::cout << "response.audio.stopped" << std::endl;
+            isTalking = 0;
+            return std::make_pair(nullptr, nullptr);
+        }},
+        {"error", [this](const Event& event) {
+            auto error = event.data.at("error");
+            std::cerr << "Error: " << error.at("message") << std::endl;
             return std::make_pair(nullptr, nullptr);
         }}
     };

@@ -22,14 +22,22 @@ public:
     void createConversationitem(std::string& message);
     void createResponse();
     void updateSession(const std::string& message);
-    void cancelResponse();
+    void cancelAssistantSpeech();
+    void setFrequency(int frequency) {
+        conversation.frequency = frequency;
+    };
+    void setWakeupOn(bool wakeup) {
+        wakeupOn = wakeup;
+        if (wakeup) {
+            cancelAssistantSpeech();
+        }
+    };
 
 protected:
     json session;
-    bool quitRequest;
-    bool retryRequest;
-    bool talking;
-    bool mute;
+    bool quitRequest = false;
+    bool retryRequest = false;
+    bool wakeupOn = false;
     Conversation conversation;
 
     // Additional shared methods can be added here

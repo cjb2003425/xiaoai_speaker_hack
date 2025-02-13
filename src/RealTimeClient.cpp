@@ -1,9 +1,11 @@
 #include <iostream>
+#include <chrono>
+#include <ctime>
 #include "RealTimeClient.h"
 
 
 // JSON template constants
-const std::string CONVERSATION_ITEM_TEMPLATE = R"(
+const std::string CONVERSATION_ITEM_CREATE_TEMPLATE = R"(
 {
     "type": "conversation.item.create",
     "item": {
@@ -41,15 +43,7 @@ const std::string RESPONSE_CREATE_TEMPLATE = R"({
     }
 })";
 
-const std::string RESPONSE_CANCEL_TEMPLATE = R"({
-    "type": "response.cancel"
-})";
-
-RealTimeClient::RealTimeClient() : 
-    quitRequest(false), 
-    retryRequest(false),
-    talking(false),
-    mute(false) {
+RealTimeClient::RealTimeClient() {
     conversation.registerCallback("session.created", [this](const Event& event) {
             session = event.data;
             std::cout << "session created" << std::endl;
@@ -74,8 +68,8 @@ void RealTimeClient::onMessage(std::string& message) {
         json eventJson = json::parse(message);
         event.type = eventJson["type"];
         event.data = eventJson;
-        std::cout << "event: " << event.type << std::endl;
-        std::cout << "data" << event.data.dump() << std::endl;
+        //std::cout << "event: " << event.type << std::endl;
+        //std::cout << "data" << event.data.dump() << std::endl;
 
         // Process the event
         conversation.processEvent(event);
@@ -92,7 +86,7 @@ void RealTimeClient::createConversationitem(std::string& message) {
     }
 
     try {
-        json item = json::parse(CONVERSATION_ITEM_TEMPLATE);
+        json item = json::parse(CONVERSATION_ITEM_CREATE_TEMPLATE);
         item["item"]["content"][0]["text"] = message;
         sendMessage(item.dump());
     } catch (const json::parse_error& e) {
@@ -104,12 +98,39 @@ void RealTimeClient::createResponse() {
     sendMessage(RESPONSE_CREATE_TEMPLATE);
 }
 
-void RealTimeClient::cancelResponse() {
-    if (talking) {
-        std::cout << "Cancel response" << std::endl;
-        mute  = true;
-        sendMessage(RESPONSE_CANCEL_TEMPLATE);
+void RealTimeClient::cancelAssistantSpeech() {
+    json clearItem;
+    clearItem["type"] = "output_audio_buffer.clear";
+    sendMessage(clearItem.dump());
+
+    std::shared_ptr<ItemType> recent = conversation.getRecentAssistantMessage();
+    if (!recent) {
+      std::cerr << "can't cancel, no recent assistant message found" << std::endl;
+      return;
     }
+
+    if (recent->status == "completed") {
+      std::cerr << "No truncation needed, message is completed" << std::endl;
+      return;
+    }
+
+    try {
+        auto now = std::chrono::steady_clock::now();
+        auto elapse = std::chrono::duration_cast<std::chrono::milliseconds>(now - recent->time);
+        json item;
+        item["type"] = "conversation.item.truncate";
+        item["content_index"] = 0;
+        item["item_id"] = recent->id;
+        item["audio_end_ms"] = elapse.count();
+        std::cout << "elpse:" << elapse.count() << std::endl;
+        sendMessage(item.dump());
+    } catch (const json::parse_error& e) {
+        std::cerr << "Failed to parse conversation item JSON: " + std::string(e.what());
+    }
+
+    json cancelItem;
+    cancelItem["type"] = "response.cancel";
+    sendMessage(cancelItem.dump());
 }
 
 void RealTimeClient::updateSession(const std::string& msg) {

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <optional>
 #include <functional>
+#include <chrono>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 
@@ -40,11 +41,11 @@ struct ItemType {
     std::string role;
     std::string status;
     std::vector<std::shared_ptr<ItemContentDeltaType>>content;
-    std::string name;
     std::string call_id;
     std::string arguments;
     std::string output;
     Formatted formatted;
+    std::chrono::steady_clock::time_point time;
 };
 
 class Conversation {
@@ -58,15 +59,19 @@ public:
     bool registerCallback(const std::string& type, std::function<std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>>(const Event&)> callback);
 
     std::shared_ptr<ItemType> getItem(const std::string& id);
-
+    std::shared_ptr<ItemType> getRecentAssistantMessage() {
+        auto it = std::find_if(items.rbegin(), items.rend(),
+            [](const auto& item) { return item->role == "assistant"; });
+        return it != items.rend() ? *it : nullptr;
+    }
+    int frequency = 8000;
+    int isTalking = 0;
 private:
     // Private Members
-    int frequence;
     std::map<std::string, std::shared_ptr<ItemType>> itemLookup;
     std::vector<std::shared_ptr<ItemType>> items;
     std::map<std::string, std::shared_ptr<Response>> responseLookup;
     std::vector<std::shared_ptr<Response>> responses;
-    std::map<std::string, std::map<std::string, std::string>> queuedTranscriptItems;
 
     // Event Processors
     std::unordered_map<std::string, std::function<std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>>(const Event&)>> eventProcessors; 

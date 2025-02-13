@@ -75,7 +75,7 @@ bool WebRTCClient::init() {
         .datachannel = DATA_CHANNEL_STRING,
         .onaudiotrack = [](uint8_t *data, size_t size, void *userdata) -> void {
             WebRTCClient* client = static_cast<WebRTCClient*>(userdata);
-            if (!client->mute) {
+            if (!client->wakeupOn) {
                 oai_audio_decode(data, size);
             }
         },
@@ -109,6 +109,7 @@ bool WebRTCClient::deinit() {
 
 WebRTCClient::WebRTCClient(ThreadTimer& timer) : 
     timer(timer) {
+    setFrequency(8000);
     peer_init();
 }
 
@@ -135,6 +136,7 @@ bool WebRTCClient::loop() {
 }
 
 bool WebRTCClient::sendMessage(const std::string& message) {
+    std::cout << "send:" << message << std::endl;
     if (peer_connection_datachannel_send(peer_connection, const_cast<char*>(message.c_str()), message.size()) < 0) {
         std::cout << "send message failed" << std::endl;
         return false;

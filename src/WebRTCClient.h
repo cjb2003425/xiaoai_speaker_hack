@@ -29,7 +29,6 @@ private:
     
     // Member variables
     PeerConnection* peer_connection;
-    json conversation;
     ThreadTimer& timer;
     
     // Audio handling

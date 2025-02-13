@@ -165,7 +165,7 @@ static void ubus_monitor_cb(struct ubus_context *ctx, uint32_t seq, struct blob_
     if (json_data["data"]["action"] == "start" && json_data["method"] == "player_wakeup") {
         RealTimeClient* client = oai_get_client();
         if (client) {
-            client->cancelResponse();
+            client->setWakeupOn(true);
         }
 
         if (wakeup_first) {
@@ -173,6 +173,11 @@ static void ubus_monitor_cb(struct ubus_context *ctx, uint32_t seq, struct blob_
             wakeup_occurred = true; 
             wakeup_cond.notify_all();
             wakeup_first = false;
+        }
+    } else if (json_data["data"]["action"] == "stop" && json_data["method"] == "player_wakeup") {
+        RealTimeClient* client = oai_get_client();
+        if (client) {
+            client->setWakeupOn(false);
         }
     }
     free(data);
