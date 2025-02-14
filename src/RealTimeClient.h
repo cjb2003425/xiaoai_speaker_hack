@@ -10,6 +10,7 @@ using json = nlohmann::json;
 
 class RealTimeClient {
 public:
+    static constexpr int KEEP_NUM = 3; 
     RealTimeClient();
     virtual ~RealTimeClient();
     
@@ -20,6 +21,7 @@ public:
     
     virtual void onMessage(std::string& message);
     void createConversationitem(std::string& message);
+    void clearOlderItems();
     void createResponse();
     void updateSession(const std::string& message);
     void cancelAssistantSpeech();

@@ -85,6 +85,7 @@ void RealTimeClient::createConversationitem(std::string& message) {
         return;
     }
 
+    clearOlderItems();
     try {
         json item = json::parse(CONVERSATION_ITEM_CREATE_TEMPLATE);
         item["item"]["content"][0]["text"] = message;
@@ -96,22 +97,23 @@ void RealTimeClient::createConversationitem(std::string& message) {
 
 void RealTimeClient::createResponse() {
     sendMessage(RESPONSE_CREATE_TEMPLATE);
+    wakeupOn = false;
 }
 
 void RealTimeClient::cancelAssistantSpeech() {
     json clearItem;
     clearItem["type"] = "output_audio_buffer.clear";
-    sendMessage(clearItem.dump());
 
     std::shared_ptr<ItemType> recent = conversation.getRecentAssistantMessage();
     if (!recent) {
-      std::cerr << "can't cancel, no recent assistant message found" << std::endl;
-      return;
+        std::cerr << "can't cancel, no recent assistant message found" << std::endl;
+        return;
     }
 
     if (recent->status == "completed") {
-      std::cerr << "No truncation needed, message is completed" << std::endl;
-      return;
+        std::cerr << "No truncation needed, message is completed" << std::endl;
+        sendMessage(clearItem.dump());
+        return;
     }
 
     try {
@@ -131,6 +133,7 @@ void RealTimeClient::cancelAssistantSpeech() {
     json cancelItem;
     cancelItem["type"] = "response.cancel";
     sendMessage(cancelItem.dump());
+    sendMessage(clearItem.dump());
 }
 
 void RealTimeClient::updateSession(const std::string& msg) {
@@ -139,5 +142,22 @@ void RealTimeClient::updateSession(const std::string& msg) {
         sendMessage(item.dump());
     } catch (const json::parse_error& e) {
         std::cout << "Failed to parse conversation item JSON: " + std::string(e.what());
+    }
+}
+
+void RealTimeClient::clearOlderItems() {
+    int size = conversation.getItemSize();
+    while (size > KEEP_NUM) {
+        std::shared_ptr<ItemType> item = conversation.popFrontItem();
+        if (item) {
+            std::cout << "clear item:" << item->id << std::endl;
+            json itemJson;
+            itemJson["type"] = "conversation.item.delete";
+            itemJson["item_id"] = item->id;
+            sendMessage(itemJson.dump());
+        } else {
+            std::cout << "no item to clear" << std::endl;
+        }
+        size--;
     }
 }

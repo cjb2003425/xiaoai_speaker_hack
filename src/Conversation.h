@@ -58,6 +58,18 @@ public:
     std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>> processEvent(const Event& event); 
     bool registerCallback(const std::string& type, std::function<std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>>(const Event&)> callback);
 
+    int getItemSize() {return items.size();};
+    std::shared_ptr<ItemType> popFrontItem() {
+        if (items.size() == 0) {
+            return nullptr;
+        }
+
+        std::shared_ptr<ItemType> item = items[0];
+        itemLookup.erase(item->id);
+        items.erase(items.begin());
+        return item;
+    }
+
     std::shared_ptr<ItemType> getItem(const std::string& id);
     std::shared_ptr<ItemType> getRecentAssistantMessage() {
         auto it = std::find_if(items.rbegin(), items.rend(),

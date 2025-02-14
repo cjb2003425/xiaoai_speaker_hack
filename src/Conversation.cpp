@@ -62,6 +62,7 @@ void Conversation::initializeEventProcessors() {
             if (newItem->role == "assistant") {
                 newItem->time = std::chrono::steady_clock::now();
             }
+            std::cout << "add item:" << newItem->id << std::endl;
             return std::make_pair(newItem, nullptr);
         }},
         {"conversation.item.truncated", [this](const Event& event) {
@@ -254,6 +255,14 @@ void Conversation::initializeEventProcessors() {
         {"output_audio_buffer.stopped", [this](const Event& event) {
             std::cout << "response.audio.stopped" << std::endl;
             isTalking = 0;
+            return std::make_pair(nullptr, nullptr);
+        }},
+        {"response.done", [this](const Event& event) {
+            std::cout << "response.done" << std::endl;
+            const auto& response = event.data.at("response");
+            const auto& usage = response.at("usage");
+
+            std::cout << "total token:" << usage.at("total_tokens") << std::endl;
             return std::make_pair(nullptr, nullptr);
         }},
         {"error", [this](const Event& event) {
