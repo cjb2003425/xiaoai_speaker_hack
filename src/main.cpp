@@ -27,6 +27,7 @@ unordered_map<string, json> items;
 string current_dialog_id;
 RealTimeClient *client = nullptr;
 
+#if defined(__arm__)
 int store(json& data) {
     string text;
     string result;
@@ -118,6 +119,7 @@ void monitorFileChanges() {
     inotify_rm_watch(fd, wd);
     close(fd);
 }
+#endif
 
 void handle_siginit(int sig) {
     cout << "handle sigint" << endl;
@@ -128,7 +130,7 @@ void loadEnvConfig(const std::string& filePath) {
     std::ifstream file(filePath);
     if (!file.is_open()) {
         std::cerr << "Error opening config file" << std::endl;
-        exit(1);
+        return;
     }
 
     std::string line;
@@ -171,9 +173,10 @@ RealTimeClient* oai_get_client(void) {
 int main(void) {
     signal(SIGINT, handle_siginit); 
     loadEnvConfig(env_config_path);
+    ThreadTimer timer;
+    #if defined(__arm__)
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
-    ThreadTimer timer;
 
     pthread_t thread = pthread_self();
     struct sched_param param;
@@ -184,16 +187,19 @@ int main(void) {
         perror("pthread_setschedparam");
         return -1;
     }
+    #endif
     oai_init_audio_capture();
     oai_init_audio_decoder();
-    #ifndef USE_WEBRTC
+    #ifdef USE_WEBRTC
     client = new WebRTCClient(timer);
     #else
     client = new WebSocketClient();
     #endif
     client->init();
     client->loop();
+    #if defined(__arm__)
     file_monitor.join();
     ubus_monitor.join();
+    #endif
     return 0;
 }

@@ -8,6 +8,7 @@
 
 class WebSocketClient : public RealTimeClient {
 public:
+    static constexpr int MAX_RINGBUFFER_SIZE = 8;
     // Constructor and Destructor
     WebSocketClient();
     ~WebSocketClient();

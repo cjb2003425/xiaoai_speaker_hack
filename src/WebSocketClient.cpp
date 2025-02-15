@@ -56,7 +56,7 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
 
         return 0;
     case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER: {
-        lwsl_err("Append handshake headers\n");
+        lwsl_info("Append handshake headers\n");
         unsigned char **p = (unsigned char **)in, *end = (*p) + len;
 
         // Example: Add authorization header
@@ -91,7 +91,7 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
         break;
 
     case LWS_CALLBACK_CLIENT_RECEIVE:
-        lwsl_err("CLIENT_CONNECTION_RECEIVE\n");
+        lwsl_info("CLIENT_CONNECTION_RECEIVE\n");
         if (client) {
             std::string data = std::string((char*)in, len);
             client->onMessage(data);
@@ -103,10 +103,13 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
         break;
 
     case LWS_CALLBACK_CLIENT_WRITEABLE:
+        lwsl_info("CALLBACK_CLIENT_WRITEABLE\n");
         pthread_mutex_lock(&con->lock_ring); /* --------- ring lock { */
         pmsg = static_cast<const msg*>(lws_ring_get_element(con->ring, &con->tail));
-        if (!pmsg)
+        if (!pmsg) {
+            lwsl_info("no data to send\n");
             goto skip;
+        }
 
         /* notice we allowed for LWS_PRE in the payload already */
         m = lws_write(wsi, ((unsigned char *)pmsg->payload) + LWS_PRE,
@@ -222,6 +225,10 @@ bool WebSocketClient::init()
     struct lws_context_creation_info info;
     const char *p;
     int n = 0;
+    int log_level = LLL_ERR | LLL_WARN | LLL_NOTICE; 
+
+    // Set the log level and optional log callback
+    lws_set_log_level(log_level, NULL);
 
     memset(&info, 0, sizeof info);
     std::cout << "WebSocketClient connect!" << std::endl;
@@ -240,18 +247,20 @@ bool WebSocketClient::init()
 
     /* schedule the first client connection attempt to happen immediately */
     lws_sul_schedule(mConnectionInfo.context, 0, &mConnectionInfo.sul, connectClient, 1);
+    return true;
 }
 
 bool WebSocketClient::loop() {
     int n = 0;
-    while (n >= 0 && !quitRequest)
+    while (n >= 0 && !quitRequest) {
         n = lws_service(mConnectionInfo.context, 0);
+    }
     return true;
 }
 
 WebSocketClient::WebSocketClient() {
     memset(&mConnectionInfo, 0, sizeof(mConnectionInfo));
-    mConnectionInfo.ring = lws_ring_create(sizeof(struct msg), 8,
+    mConnectionInfo.ring = lws_ring_create(sizeof(struct msg), MAX_RINGBUFFER_SIZE,
                     destroy_message);
     pthread_mutex_init(&mConnectionInfo.lock_ring, NULL);
 };
@@ -268,7 +277,8 @@ WebSocketClient::~WebSocketClient() {
 }
 
 bool WebSocketClient::sendMessage(const std::string& message) {
-    size_t len = message.length();
+    std::cout << "send:" << message << std::endl;
+    size_t len = message.length() + 1;
     struct msg amsg;
     int index = 1;
     if (!mConnectionInfo.established) {
@@ -308,5 +318,6 @@ bool WebSocketClient::sendMessage(const std::string& message) {
 }
 
 void WebSocketClient::onMessage(std::string& message) {
+    std::cout << message << std::endl;
     RealTimeClient::onMessage(message);
 }

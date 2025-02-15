@@ -34,6 +34,9 @@ public:
             cancelAssistantSpeech();
         }
     };
+    void clear() {
+        conversation.clear();
+    }
 
 protected:
     json session;
