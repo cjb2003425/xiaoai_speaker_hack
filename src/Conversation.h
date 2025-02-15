@@ -51,7 +51,7 @@ struct ItemType {
 class Conversation {
 public:
     Conversation(); 
-    ~Conversation() = default;
+    ~Conversation() {eventProcessors.clear();};
     void clear();
 
     // Public Methods

@@ -13,7 +13,7 @@ using json = nlohmann::json;
 
 class WebRTCClient : public RealTimeClient {
 public:
-    WebRTCClient(ThreadTimer& timer);
+    WebRTCClient();
     ~WebRTCClient();
     
     bool loop();
@@ -29,7 +29,6 @@ private:
     
     // Member variables
     PeerConnection* peer_connection;
-    ThreadTimer& timer;
     
     // Audio handling
     static void* audioSendTaskWrapper(void* context);

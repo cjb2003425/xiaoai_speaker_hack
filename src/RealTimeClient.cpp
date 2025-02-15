@@ -50,6 +50,12 @@ RealTimeClient::RealTimeClient() {
             updateSession(SESSION_UPDATE_TEMPLATE);
             return std::make_pair(nullptr, nullptr);
         });
+
+    conversation.registerCallback("session.updated", [this](const Event& event) {
+            session = event.data;
+            std::cout << "session updated" << std::endl;
+            return std::make_pair(nullptr, nullptr);
+        });
 }
 
 RealTimeClient::~RealTimeClient() {
@@ -85,7 +91,7 @@ void RealTimeClient::createConversationitem(std::string& message) {
         return;
     }
 
-    clearOlderItems();
+    //clearOlderItems();
     try {
         json item = json::parse(CONVERSATION_ITEM_CREATE_TEMPLATE);
         item["item"]["content"][0]["text"] = message;

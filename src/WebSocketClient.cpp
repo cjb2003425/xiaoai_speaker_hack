@@ -93,8 +93,25 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
     case LWS_CALLBACK_CLIENT_RECEIVE:
         lwsl_info("CLIENT_CONNECTION_RECEIVE\n");
         if (client) {
-            std::string data = std::string((char*)in, len);
-            client->onMessage(data);
+            // Append the newly received fragment to the ongoing message buffer
+            client->recvmsg += std::string((char*)in, len);
+
+            // Check if we have a complete JSON message
+            int openBraces = 0;
+            int closeBraces = 0;
+            for (char c : client->recvmsg) {
+                if (c == '{') {
+                    openBraces++;
+                } else if (c == '}') {
+                    closeBraces++;
+                }
+            }
+
+            // If the number of opening and closing braces match, we have a complete JSON message
+            if (openBraces > 0 && openBraces == closeBraces) {
+                client->onMessage(client->recvmsg); // Process the complete message
+                client->recvmsg.clear(); // Clear the buffer for the next message
+            }
         }
         break;
     case LWS_CALLBACK_CLIENT_ESTABLISHED:

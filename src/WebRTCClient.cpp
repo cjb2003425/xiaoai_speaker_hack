@@ -107,8 +107,7 @@ bool WebRTCClient::deinit() {
     return true;
 }
 
-WebRTCClient::WebRTCClient(ThreadTimer& timer) : 
-    timer(timer) {
+WebRTCClient::WebRTCClient() {
     setFrequency(8000);
     peer_init();
 }

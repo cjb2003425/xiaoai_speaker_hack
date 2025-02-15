@@ -41,8 +41,12 @@ private:
         uint32_t tail;
         bool established;
     };
+
     // Private members
     ConnectionInfo mConnectionInfo;
+    std::string recvmsg;
+    bool startFlag = false;
+    bool endFlag = false;
     static const struct lws_protocols protocols[2]; 
     static const uint32_t backoff_ms[BACKOFF_MS_NUM];
     static const lws_retry_bo_t retry; // Declare the retry as a static class member

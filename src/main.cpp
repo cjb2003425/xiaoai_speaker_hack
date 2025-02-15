@@ -170,10 +170,23 @@ RealTimeClient* oai_get_client(void) {
     return client;
 }
 
-int main(void) {
+void timerHandler(void) {
+    std::string text = "What can you do?";
+    client->createConversationitem(text);
+    client->createResponse();
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " [-s | -r]" << std::endl;
+        return 1;
+    }
+
     signal(SIGINT, handle_siginit); 
     loadEnvConfig(env_config_path);
     ThreadTimer timer;
+    timer.set(10, timerHandler);
+    timer.start();
     #if defined(__arm__)
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
@@ -190,16 +203,20 @@ int main(void) {
     #endif
     oai_init_audio_capture();
     oai_init_audio_decoder();
-    #ifdef USE_WEBRTC
-    client = new WebRTCClient(timer);
-    #else
-    client = new WebSocketClient();
-    #endif
+
+    if (std::strcmp(argv[1], "-s") == 0) {
+        client = new WebSocketClient();
+    } else if (std::strcmp(argv[1], "-r") == 0) {
+        client = new WebRTCClient();
+    } else {
+        std::cerr << "Invalid option. Use -s for WebSocketClient or -r for WebRTCClient." << std::endl;
+        return 1;
+    }
     client->init();
     client->loop();
     #if defined(__arm__)
     file_monitor.join();
     ubus_monitor.join();
     #endif
-    return 0;
+    return 1;
 }
