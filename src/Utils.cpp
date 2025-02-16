@@ -4,34 +4,47 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <curl/curl.h>
 #include <random>
 #include "Utils.h"
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+#include "AudioBuffer.h"
 
-std::vector<int16_t> Utils::floatTo16BitPCM(const std::vector<float>& float32Array) {
-    std::vector<int16_t> int16Array(float32Array.size());
-    for (size_t i = 0; i < float32Array.size(); ++i) {
-        float s = std::max(-1.0f, std::min(1.0f, float32Array[i]));
-        int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+static const std::string base64_chars = 
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789+/";
+
+std::pair<std::unique_ptr<uint8_t[]>, size_t> Utils::base64_decode(const std::string& in) {
+    if (in.empty()) return {nullptr, 0};
+
+    size_t padding = (in.back() == '=' ? (in[in.length()-2] == '=' ? 2 : 1) : 0);
+    size_t out_len = ((in.length() * 3) / 4) - padding;
+    auto out = std::make_unique<uint8_t[]>(out_len);
+    size_t out_pos = 0;
+
+    uint32_t buf = 0;
+    int bits_left = 0;
+
+    for (char c : in) {
+        if (c == '=' || isspace(c)) continue;
+        
+        size_t val = base64_chars.find(c);
+        if (val == std::string::npos) return {nullptr, 0};
+
+        buf = (buf << 6) | val;
+        bits_left += 6;
+        
+        if (bits_left >= 8) {
+            bits_left -= 8;
+            out[out_pos++] = (buf >> bits_left) & 0xFF;
+        }
     }
-    return int16Array;
-}
 
-std::vector<uint8_t> Utils::base64ToArrayBuffer(const std::string& base64) {
-    std::string binaryString = base64_decode(base64);
-    std::vector<uint8_t> bytes(binaryString.begin(), binaryString.end());
-    return bytes;
-}
-
-std::string Utils::arrayBufferToBase64(const std::vector<uint8_t>& arrayBuffer) {
-    std::string binary(arrayBuffer.begin(), arrayBuffer.end());
-    return base64_encode(binary);
-}
-
-std::vector<int16_t> Utils::mergeInt16Arrays(const std::vector<int16_t>& left, const std::vector<int16_t>& right) {
-    std::vector<int16_t> merged(left.size() + right.size());
-    std::copy(left.begin(), left.end(), merged.begin());
-    std::copy(right.begin(), right.end(), merged.begin() + left.size());
-    return merged;
+    return {std::move(out), out_len};
 }
 
 std::string Utils::generateId(const std::string& prefix, size_t length) {
@@ -47,39 +60,11 @@ std::string Utils::generateId(const std::string& prefix, size_t length) {
     return str;
 }
 
-std::string Utils::base64_encode(const std::string &in) {
-    std::string out;
-    int val = 0, valb = -6;
-    for (unsigned char c : in) {
-        val = (val << 8) + c;
-        valb += 8;
-        while (valb >= 0) {
-            out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(val >> valb) & 0x3F]);
-            valb -= 6;
-        }
-    }
-    if (valb > -6) out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val << 8) >> (valb + 8)) & 0x3F]);
-    while (out.size() % 4) out.push_back('=');
-    return out;
+void Utils::base64DecodeAudio(const std::string &input, AudioBuffer& buffer) {
+    std::pair<std::unique_ptr<uint8_t[]>, size_t> decoded = base64_decode(input);
+    buffer.append(decoded.first.get(), decoded.second);
 }
 
-std::string Utils::base64_decode(const std::string &in) {
-    std::string out;
-    std::vector<int> T(256, -1);
-    for (int i = 0; i < 64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
-
-    int val = 0, valb = -8;
-    for (unsigned char c : in) {
-        if (T[c] == -1) break;
-        val = (val << 6) + T[c];
-        valb += 6;
-        if (valb >= 0) {
-            out.push_back(char((val >> valb) & 0xFF));
-            valb -= 8;
-        }
-    }
-    return out;
-}
 /// @brief Retrieves OpenAI API key from environment variables
 /// @param[out] res Reference to store the API key
 /// @return true if key was found and stored successfully, false otherwise

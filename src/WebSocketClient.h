@@ -14,9 +14,11 @@ public:
     ~WebSocketClient();
 
     // Public methods
-    bool init(); // Initiate a connection
-    bool loop(); 
-    bool sendMessage(const std::string& message);
+    bool init() override; // Initiate a connection
+    bool loop() override; // Loop to process events
+    bool sendMessage(const std::string& message) override;
+    void onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) override;
+    void onAudioDone(std::shared_ptr<ItemType> item) override;
 
 private:
     static constexpr int PORT = 443;

@@ -128,6 +128,7 @@ bool WebRTCClient::loop() {
 
         if (retryRequest) {
             clear();
+            deinit();
             init();
             retryRequest = false;
         }

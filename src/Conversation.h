@@ -10,6 +10,7 @@
 #include <chrono>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
+#include "AudioBuffer.h"
 
 struct Event {
     std::string type;
@@ -23,17 +24,11 @@ struct Response {
 
 struct ItemContentDeltaType {
     std::string text;
-    std::vector<int16_t> audio;
     std::string arguments;
     std::string transcript;
+    AudioBuffer audio;
 };
 
-struct Formatted {
-    std::string text;
-    std::string transcript;
-    std::vector<int16_t> audio;
-    std::string arguments;
-};
 // Define the Item structure
 struct ItemType {
     std::string id;
@@ -44,7 +39,6 @@ struct ItemType {
     std::string call_id;
     std::string arguments;
     std::string output;
-    Formatted formatted;
     std::chrono::steady_clock::time_point time;
 };
 

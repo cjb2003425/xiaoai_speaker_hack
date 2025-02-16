@@ -20,6 +20,8 @@ public:
     virtual bool sendMessage(const std::string& message) = 0;
     
     virtual void onMessage(std::string& message);
+    virtual void onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) {};
+    virtual void onAudioDone(std::shared_ptr<ItemType> item) {};
     void createConversationitem(std::string& message);
     void clearOlderItems();
     void createResponse();

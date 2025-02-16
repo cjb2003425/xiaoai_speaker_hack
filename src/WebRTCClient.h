@@ -16,8 +16,8 @@ public:
     WebRTCClient();
     ~WebRTCClient();
     
-    bool loop();
-    bool init();
+    bool loop() override;
+    bool init() override;
     bool deinit();
     bool sendMessage(const std::string& message);
     

@@ -78,7 +78,13 @@ void RealTimeClient::onMessage(std::string& message) {
         //std::cout << "data" << event.data.dump() << std::endl;
 
         // Process the event
-        conversation.processEvent(event);
+        std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>> ret = conversation.processEvent(event);
+        if (event.type == "response.audio.delta") {
+            onAudioDelta(ret.second);
+        } else if (event.type == "response.audio.done") {
+            onAudioDone(ret.first);
+        };
+
     } catch (json::parse_error& e) {
         std::cerr << "JSON parse error: " << e.what() << std::endl;
     } catch (const std::exception& e) {

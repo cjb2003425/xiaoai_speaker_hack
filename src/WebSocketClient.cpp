@@ -3,10 +3,13 @@
 #include <cstring>
 #include <cstdlib>
 #include <unistd.h>
-#include <nlohmann/json.hpp> // Include nlohmann/json for JSON handling
+#include <nlohmann/json.hpp>
+#include <iomanip>
 #include <string.h>
 #include "Utils.h"
 #include "WebSocketClient.h"
+#include <sstream>
+#include <fstream>
 
 using json = nlohmann::json;
 
@@ -335,6 +338,31 @@ bool WebSocketClient::sendMessage(const std::string& message) {
 }
 
 void WebSocketClient::onMessage(std::string& message) {
-    std::cout << message << std::endl;
+    //std::cout << message << std::endl;
     RealTimeClient::onMessage(message);
+}
+
+void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) {
+    static int fileIndex = 0;
+
+    // Get the current time
+    auto t = std::time(nullptr);
+    auto tm = *std::localtime(&t);
+
+    // Create a unique filename using the current time and file index
+    std::ostringstream oss;
+    oss << "audio_delta_" << std::put_time(&tm, "%Y%m%d_%H%M%S") << "_" << fileIndex++ << ".txt";
+    std::string filename = oss.str();
+
+    // Write the content to the file
+    std::ofstream outFile(filename);
+    if (outFile.is_open()) {
+        outFile << delta->audio;
+        outFile.close();
+    } else {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+    }
+}
+
+void WebSocketClient::onAudioDone(std::shared_ptr<ItemType> item) {
 }

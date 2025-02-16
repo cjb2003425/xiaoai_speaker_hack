@@ -47,8 +47,6 @@ void Conversation::initializeEventProcessors() {
             const auto& item = event.data.at("item");
             std::shared_ptr<ItemType> newItem = std::make_shared<ItemType>();
             newItem->id = item.at("id");
-            newItem->formatted.text = "";
-            newItem->formatted.transcript = "";
             newItem->status = item.at("status");
             newItem->role = item.at("role");
             newItem->type = item.at("type");
@@ -75,8 +73,6 @@ void Conversation::initializeEventProcessors() {
             }
             std::shared_ptr<ItemType> foundItem = it->second;
             int endIndex = (audio_end_ms * frequency) / 1000;
-            foundItem->formatted.transcript = "";
-            foundItem->formatted.audio.resize(endIndex);
             return std::make_pair(foundItem, nullptr);
         }},
         {"conversation.item.deleted", [this](const Event& event) {
@@ -180,7 +176,6 @@ void Conversation::initializeEventProcessors() {
 
             std::shared_ptr<ItemType> item = it->second;
             item->content[content_index]->transcript += delta;
-            item->formatted.transcript += delta;
 
             auto deltaPart = std::make_shared<ItemContentDeltaType>();
             deltaPart->transcript = delta;
@@ -198,18 +193,8 @@ void Conversation::initializeEventProcessors() {
             }
 
             std::shared_ptr<ItemType> item = it->second;
-            // Convert base64 to array buffer and then to Int16Array
-            std::vector<unsigned char> buffer = Utils::base64ToArrayBuffer(delta);
-            std::vector<int16_t> appendValues(buffer.begin(), buffer.end());
-            
-            // Merge arrays
-            std::vector<int16_t> mergedAudio = Utils::mergeInt16Arrays(
-                item->formatted.audio,
-                appendValues
-            );
-            item->formatted.audio = mergedAudio;
             auto deltaPart = std::make_shared<ItemContentDeltaType>();
-            deltaPart->audio = appendValues;
+            Utils::base64DecodeAudio(delta, deltaPart->audio);
             return std::make_pair(item, deltaPart);
         }},
         {"response.text.delta", [this](const Event& event) {
@@ -225,7 +210,6 @@ void Conversation::initializeEventProcessors() {
 
             std::shared_ptr<ItemType> item = it->second;
             item->content[content_index]->text += delta;
-            item->formatted.text += delta;
             
             auto deltaPart = std::make_shared<ItemContentDeltaType>();
             deltaPart->text = delta;
@@ -237,7 +221,13 @@ void Conversation::initializeEventProcessors() {
         }},
         {"response.audio.done", [this](const Event& event) {
             std::cout << "response.audio.done" << std::endl;
-            return std::make_pair(nullptr, nullptr);
+            std::string item_id = event.data.at("item_id");
+
+            auto it = itemLookup.find(item_id);
+            if (it == itemLookup.end()) {
+                throw std::runtime_error("response.audio.done: Item '" + item_id + "' not found");
+            }
+            return std::make_pair(it->second, nullptr);
         }},
         {"response.audio_transcript.done", [this](const Event& event) {
             std::cout << "response.audio_transcript.done" << std::endl;
