@@ -24,9 +24,8 @@ opus_int16 *encoder_input_buffer = NULL;
 uint8_t *encoder_output_buffer = NULL;
 FILE *output_file = NULL;
 
-void oai_init_audio_capture() {
+void oai_init_audio_alsa(uint32_t sample_rate) {
     snd_pcm_hw_params_t *params;
-    unsigned int sample_rate = 8000;
     int channels = 1;
     snd_pcm_uframes_t frames = BUFFER_SAMPLES;
     snd_pcm_uframes_t buffer_size;
@@ -87,6 +86,20 @@ void oai_init_audio_decoder() {
     output_buffer = (opus_int16 *)malloc(BUFFER_SAMPLES * sizeof(opus_int16));
 }
 
+ssize_t oai_audio_write(const void* data, snd_pcm_uframes_t size) {
+    ssize_t res = 0;
+    res = snd_pcm_writei(pcm_handle_output, data, size);
+    if (res == -EPIPE) {
+        // Buffer underrun
+        fprintf(stderr, "XRUN.\n");
+        snd_pcm_prepare(pcm_handle_output);
+    } else if (res < 0) {
+        fprintf(stderr, "ERROR: Can't write to PCM device. %s\n", snd_strerror(res));
+    } else {
+    }
+    return res;
+}
+
 void oai_audio_decode(uint8_t *data, size_t size) {
     ssize_t res = 0;
     int decoded_size = opus_decode(opus_decoder, data, size, output_buffer, BUFFER_SAMPLES, 0);
@@ -97,16 +110,7 @@ void oai_audio_decode(uint8_t *data, size_t size) {
             fprintf(stderr, "Failed to write all decoded data to file\n");
         }
         #endif
-
-        res = snd_pcm_writei(pcm_handle_output, output_buffer, decoded_size);
-        if (res == -EPIPE) {
-            // Buffer underrun
-            fprintf(stderr, "XRUN.\n");
-            snd_pcm_prepare(pcm_handle_output);
-        } else if (res < 0) {
-            fprintf(stderr, "ERROR: Can't write to PCM device. %s\n", snd_strerror(res));
-        } else {
-        }
+        res = oai_audio_write(output_buffer, decoded_size);
     }
 }
 

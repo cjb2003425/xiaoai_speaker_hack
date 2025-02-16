@@ -1,6 +1,7 @@
 #ifndef WEBSOCKETCLIENT_H
 #define WEBSOCKETCLIENT_H
 
+#include <queue>
 #include <libwebsockets.h>
 #include <string>
 #include "RealTimeClient.h"

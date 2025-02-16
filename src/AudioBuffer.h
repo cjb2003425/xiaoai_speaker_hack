@@ -4,7 +4,7 @@
 class AudioBuffer {
 public:
     AudioBuffer() : size_(0), capacity_(65536) { // Start with 64K capacity
-        buffer_ = new char[capacity_];
+        buffer_ = new uint8_t[capacity_];
     }
 
     ~AudioBuffer() {
@@ -22,14 +22,18 @@ public:
     std::size_t size() const {
         return size_;
     }
+    
+    uint8_t* get() const {
+        return buffer_;
+    }
 
     friend std::ostream& operator<<(std::ostream& os, const AudioBuffer& buffer) {
-        os.write(buffer.buffer_, buffer.size_);
+        os.write(reinterpret_cast<const char*>(buffer.buffer_), buffer.size_);
         return os;
     }
 
 private:
-    char* buffer_;
+    uint8_t* buffer_;
     std::size_t size_;
     std::size_t capacity_;
 
@@ -38,7 +42,7 @@ private:
         while (capacity_ < new_size) {
             capacity_ *= 2;
         }
-        char* new_buffer = new char[capacity_];
+        uint8_t* new_buffer = new uint8_t[capacity_];
         std::memcpy(new_buffer, buffer_, size_);
         delete[] buffer_;
         buffer_ = new_buffer;

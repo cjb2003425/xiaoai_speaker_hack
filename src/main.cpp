@@ -177,6 +177,7 @@ void timerHandler(void) {
 }
 
 int main(int argc, char* argv[]) {
+    uint32_t sample_rate = 0;
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " [-s | -r]" << std::endl;
         return 1;
@@ -185,8 +186,8 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, handle_siginit); 
     loadEnvConfig(env_config_path);
     ThreadTimer timer;
-    timer.set(10, timerHandler);
-    timer.start();
+    //timer.set(10, timerHandler);
+    //timer.start();
     #if defined(__arm__)
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
@@ -201,17 +202,19 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     #endif
-    oai_init_audio_capture();
-    oai_init_audio_decoder();
 
     if (std::strcmp(argv[1], "-s") == 0) {
         client = new WebSocketClient();
+        sample_rate = 24000;
     } else if (std::strcmp(argv[1], "-r") == 0) {
         client = new WebRTCClient();
+        sample_rate = 8000;
     } else {
         std::cerr << "Invalid option. Use -s for WebSocketClient or -r for WebRTCClient." << std::endl;
         return 1;
     }
+    oai_init_audio_alsa(sample_rate);
+    oai_init_audio_decoder();
     client->init();
     client->loop();
     #if defined(__arm__)

@@ -6,10 +6,11 @@
 #include <nlohmann/json.hpp>
 #include <iomanip>
 #include <string.h>
-#include "Utils.h"
-#include "WebSocketClient.h"
 #include <sstream>
 #include <fstream>
+#include "Utils.h"
+#include "WebSocketClient.h"
+#include "main.h"
 
 using json = nlohmann::json;
 
@@ -343,6 +344,7 @@ void WebSocketClient::onMessage(std::string& message) {
 }
 
 void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) {
+    #ifdef AUDIO_DEBUG
     static int fileIndex = 0;
 
     // Get the current time
@@ -362,6 +364,10 @@ void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) 
     } else {
         std::cerr << "Failed to open file: " << filename << std::endl;
     }
+    #else
+    AudioBuffer& buffer = delta->audio;
+    oai_audio_write(buffer.get(), buffer.size() / 2);
+    #endif
 }
 
 void WebSocketClient::onAudioDone(std::shared_ptr<ItemType> item) {
