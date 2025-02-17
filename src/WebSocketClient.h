@@ -28,6 +28,7 @@ private:
     static constexpr int PORT = 443;
     static constexpr int SSL_CONNECTION = LCCSCF_USE_SSL;
     static constexpr int BACKOFF_MS_NUM = 5;
+    static constexpr int MAX_BUFF_DELTA = 2;
     // Private methods
     static int callback(struct lws *wsi, enum lws_callback_reasons reason,
                         void *user, void *in, size_t len);
@@ -63,6 +64,7 @@ private:
     std::condition_variable audioCondVar;
     std::thread audioThread;
     bool audioThreadRunning;
+    bool responseDone;
 
     void audioProcessingThread();
     void stopAudioThread();

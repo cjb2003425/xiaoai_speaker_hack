@@ -14,6 +14,7 @@
 
 #define OPUS_ENCODER_BITRATE 30000
 #define OPUS_ENCODER_COMPLEXITY 0
+#define VOLUME_GAIN 1.4f  // Define a gain factor to increase the volume
 
 snd_pcm_t *pcm_handle_input;
 snd_pcm_t *pcm_handle_output;
@@ -88,7 +89,13 @@ void oai_init_audio_decoder() {
 
 ssize_t oai_audio_write(const void* data, snd_pcm_uframes_t size) {
     ssize_t res = 0;
-    res = snd_pcm_writei(pcm_handle_output, data, size);
+    opus_int16* buffer = (opus_int16*)data;
+    for (snd_pcm_uframes_t i = 0; i < size; ++i) {
+        buffer[i] = buffer[i] * VOLUME_GAIN;
+        if (buffer[i] > INT16_MAX) buffer[i] = INT16_MAX;
+        if (buffer[i] < INT16_MIN) buffer[i] = INT16_MIN;
+    }
+    res = snd_pcm_writei(pcm_handle_output, buffer, size);
     if (res == -EPIPE) {
         // Buffer underrun
         fprintf(stderr, "XRUN.\n");

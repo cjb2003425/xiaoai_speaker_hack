@@ -287,6 +287,7 @@ WebSocketClient::WebSocketClient() {
     
     // Start audio processing thread
     audioThreadRunning = true;
+    responseDone = false;
     audioThread = std::thread(&WebSocketClient::audioProcessingThread, this);
 }
 
@@ -376,10 +377,12 @@ void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) 
         deltaQueue.push(delta);
     }
     audioCondVar.notify_one();
+    responseDone = false;
     #endif
 }
 
 void WebSocketClient::onAudioDone(std::shared_ptr<ItemType> item) {
+    responseDone = true;
 }
 
 void WebSocketClient::audioProcessingThread() {
@@ -389,7 +392,20 @@ void WebSocketClient::audioProcessingThread() {
         {
             std::unique_lock<std::mutex> lock(audioMutex);
             audioCondVar.wait(lock, [this] { 
-                return !deltaQueue.empty() || !audioThreadRunning; 
+                if (!audioThreadRunning) {
+                    return true;
+                }
+
+                if (!responseDone) {
+                    if (deltaQueue.size() > MAX_BUFF_DELTA) {
+                        return true;
+                    }
+                } else {
+                    if (!deltaQueue.empty()) {
+                        return true;
+                    }
+                }
+                return false;
             });
             
             if (!audioThreadRunning) {

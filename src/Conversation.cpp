@@ -241,6 +241,7 @@ void Conversation::initializeEventProcessors() {
             const auto& response = event.data.at("response");
             const auto& usage = response.at("usage");
 
+            std::cout << "output token:" << usage.at("output_tokens") << std::endl;
             std::cout << "total token:" << usage.at("total_tokens") << std::endl;
             return std::make_pair(nullptr, nullptr);
         }},
