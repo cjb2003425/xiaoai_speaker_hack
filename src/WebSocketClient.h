@@ -6,6 +6,9 @@
 #include <string>
 #include "RealTimeClient.h"
 #include <nlohmann/json.hpp>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
 
 class WebSocketClient : public RealTimeClient {
 public:
@@ -53,6 +56,16 @@ private:
     static const struct lws_protocols protocols[2]; 
     static const uint32_t backoff_ms[BACKOFF_MS_NUM];
     static const lws_retry_bo_t retry; // Declare the retry as a static class member
+
+    // Audio queue members
+    std::queue<std::shared_ptr<ItemContentDeltaType>> deltaQueue;
+    std::mutex audioMutex;
+    std::condition_variable audioCondVar;
+    std::thread audioThread;
+    bool audioThreadRunning;
+
+    void audioProcessingThread();
+    void stopAudioThread();
 };
 
 #endif // WEBSOCKETCLIENT_H

@@ -124,7 +124,7 @@ void RealTimeClient::cancelAssistantSpeech() {
 
     if (recent->status == "completed") {
         std::cerr << "No truncation needed, message is completed" << std::endl;
-        sendMessage(clearItem.dump());
+        //sendMessage(clearItem.dump());
         return;
     }
 
@@ -145,7 +145,7 @@ void RealTimeClient::cancelAssistantSpeech() {
     json cancelItem;
     cancelItem["type"] = "response.cancel";
     sendMessage(cancelItem.dump());
-    sendMessage(clearItem.dump());
+    //sendMessage(clearItem.dump());
 }
 
 void RealTimeClient::updateSession(const std::string& msg) {

@@ -35,7 +35,6 @@ struct ItemType {
     std::string type;
     std::string role;
     std::string status;
-    std::vector<std::shared_ptr<ItemContentDeltaType>>content;
     std::string call_id;
     std::string arguments;
     std::string output;

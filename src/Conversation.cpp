@@ -145,12 +145,6 @@ void Conversation::initializeEventProcessors() {
             std::cout << "response.content_part.added" << std::endl;
             std::string item_id = event.data.at("item_id");
             const auto& part = event.data.at("part");
-            std::shared_ptr<ItemContentDeltaType> content = std::make_shared<ItemContentDeltaType>();
-
-            if (part.find("text") != part.end()) {
-                content->text = part.at("text");
-            } else if (part.find("audio") != part.end()) {
-            }
 
             auto it = itemLookup.find(item_id);
             if (it == itemLookup.end()) {
@@ -158,8 +152,6 @@ void Conversation::initializeEventProcessors() {
             }
 
             std::shared_ptr<ItemType> item = it->second;
-            item->content.push_back(content);
-
             return std::make_pair(item, nullptr);
 
         }},
@@ -175,8 +167,6 @@ void Conversation::initializeEventProcessors() {
             }
 
             std::shared_ptr<ItemType> item = it->second;
-            item->content[content_index]->transcript += delta;
-
             auto deltaPart = std::make_shared<ItemContentDeltaType>();
             deltaPart->transcript = delta;
             return std::make_pair(item, deltaPart);
@@ -209,7 +199,6 @@ void Conversation::initializeEventProcessors() {
             }
 
             std::shared_ptr<ItemType> item = it->second;
-            item->content[content_index]->text += delta;
             
             auto deltaPart = std::make_shared<ItemContentDeltaType>();
             deltaPart->text = delta;

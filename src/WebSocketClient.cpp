@@ -284,9 +284,15 @@ WebSocketClient::WebSocketClient() {
     mConnectionInfo.ring = lws_ring_create(sizeof(struct msg), MAX_RINGBUFFER_SIZE,
                     destroy_message);
     pthread_mutex_init(&mConnectionInfo.lock_ring, NULL);
-};
+    
+    // Start audio processing thread
+    audioThreadRunning = true;
+    audioThread = std::thread(&WebSocketClient::audioProcessingThread, this);
+}
 
 WebSocketClient::~WebSocketClient() {
+    stopAudioThread();
+    
     if (mConnectionInfo.ring) {
         lws_ring_destroy(mConnectionInfo.ring);
     }
@@ -365,10 +371,52 @@ void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) 
         std::cerr << "Failed to open file: " << filename << std::endl;
     }
     #else
-    AudioBuffer& buffer = delta->audio;
-    oai_audio_write(buffer.get(), buffer.size() / 2);
+    {
+        std::lock_guard<std::mutex> lock(audioMutex);
+        deltaQueue.push(delta);
+    }
+    audioCondVar.notify_one();
     #endif
 }
 
 void WebSocketClient::onAudioDone(std::shared_ptr<ItemType> item) {
+}
+
+void WebSocketClient::audioProcessingThread() {
+    while (audioThreadRunning) {
+        std::shared_ptr<ItemContentDeltaType> delta;
+        AudioBuffer* buffer = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(audioMutex);
+            audioCondVar.wait(lock, [this] { 
+                return !deltaQueue.empty() || !audioThreadRunning; 
+            });
+            
+            if (!audioThreadRunning) {
+                break;
+            }
+            
+            delta = std::move(deltaQueue.front());
+            if (delta) {
+                buffer = &delta->audio;
+            }
+            deltaQueue.pop();
+        }
+        
+        if (buffer->size() > 0 && !wakeupOn) {
+            oai_audio_write(buffer->get(), buffer->size() / 2);
+        }
+    }
+}
+
+void WebSocketClient::stopAudioThread() {
+    {
+        std::lock_guard<std::mutex> lock(audioMutex);
+        audioThreadRunning = false;
+    }
+    audioCondVar.notify_one();
+    
+    if (audioThread.joinable()) {
+        audioThread.join();
+    }
 }
