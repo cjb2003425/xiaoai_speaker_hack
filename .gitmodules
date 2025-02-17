@@ -1,3 +1,6 @@
 [submodule "deps/libpeer"]
 	path = deps/libpeer
 	url = https://github.com/sepfy/libpeer.git
+[submodule "deps/liboai"]
+	path = deps/liboai
+	url = https://github.com/D7EAD/liboai.git
