@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_STANDARD 17)
 
 # Define source files
 set(SRC "Conversation.cpp" "WebRTCClient.cpp" "main.cpp" "http.cpp" "media.cpp" "WebSocketClient.cpp" "Utils.cpp" "RealTimeClient.cpp")
