@@ -15,6 +15,8 @@
 #include "utils.h"
 #include "WebSocketClient.h"
 #include "WebRTCClient.h"
+#include "HttpAPI.h"
+#include <getopt.h>
 
 using json = nlohmann::json;
 using namespace std;
@@ -26,6 +28,9 @@ string instruction_file_name = "/tmp/mico_aivs_lab/instruction.log";
 unordered_map<string, json> items;
 string current_dialog_id;
 RealTimeClient *client = nullptr;
+
+string host_address = "localhost";  // default value
+string key_string = "";
 
 #if defined(__arm__)
 int store(json& data) {
@@ -176,15 +181,126 @@ void timerHandler(void) {
     client->createResponse();
 }
 
+std::string getConfigFromServer(std::string& url, std::string& key) {
+    try {
+        // Add https:// prefix if not present
+        std::string full_url = url;
+        if (full_url.find("http://") == std::string::npos && 
+            full_url.find("https://") == std::string::npos) {
+            full_url = "https://" + url + "/data";
+        }
+        
+        HttpAPI api(full_url, key);
+
+        const std::map<std::string, std::string> filters = {
+            {"key", key}
+        }; 
+        std::string data = api.getData(filters);
+        
+        // Check if response contains HTML or error indicators
+        if (data.find("<html>") != std::string::npos || 
+            data.find("301") != std::string::npos) {
+            std::cerr << "Received HTML response instead of expected data" << std::endl;
+            std::cerr << data << std::endl;
+            return "";
+        }
+        
+        std::cout << "Data fetch successful: " << data << std::endl;
+        return data;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Application failed: " << e.what() << std::endl;
+        return "";
+    }
+}
+
 int main(int argc, char* argv[]) {
     uint32_t sample_rate = 0;
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " [-s | -r]" << std::endl;
+    bool websocket_mode = false;
+    bool webrtc_mode = false;
+    
+    static struct option long_options[] = {
+        {"host", required_argument, 0, 'h'},
+        {"key", required_argument, 0, 'k'},
+        {"websocket", no_argument, 0, 's'},
+        {"webrtc", no_argument, 0, 'r'},
+        {0, 0, 0, 0}
+    };
+
+    int opt;
+    int option_index = 0;
+
+    while ((opt = getopt_long(argc, argv, "srh:k:", long_options, &option_index)) != -1) {
+        switch (opt) {
+            case 's':
+                websocket_mode = true;
+                break;
+            case 'r':
+                webrtc_mode = true;
+                break;
+            case 'h':
+                host_address = optarg;
+                break;
+            case 'k':
+                key_string = optarg;
+                break;
+            default:
+                std::cerr << "Usage: " << argv[0] << " (-s | -r) [--host <address>] [--key <key_string>]" << std::endl;
+                std::cerr << "Options:" << std::endl;
+                std::cerr << "  -s, --websocket       Use WebSocket client" << std::endl;
+                std::cerr << "  -r, --webrtc         Use WebRTC client" << std::endl;
+                std::cerr << "  -h, --host <address> Specify host address (default: localhost)" << std::endl;
+                std::cerr << "  -k, --key <string>   Specify key string" << std::endl;
+                return 1;
+        }
+    }
+
+    if (!websocket_mode && !webrtc_mode) {
+        std::cerr << "Error: Must specify either -s/--websocket or -r/--webrtc mode" << std::endl;
         return 1;
     }
 
-    signal(SIGINT, handle_siginit); 
-    loadEnvConfig(env_config_path);
+    if (websocket_mode && webrtc_mode) {
+        std::cerr << "Error: Cannot specify both websocket and webrtc modes" << std::endl;
+        return 1;
+    }
+
+    signal(SIGINT, handle_siginit);
+
+    std::string data = getConfigFromServer(host_address, key_string);
+    if (data.empty()) {
+        std::cerr << "Failed to get config from server" << std::endl;
+        loadEnvConfig(env_config_path);
+    } else {
+        std::cout << "Get config successfully" << std::endl;
+
+        try {
+            json config = json::parse(data);    
+            std::string url = config["base_url"];
+            std::string api_key = config["api_key"];
+            std::string model = config["model"];
+            std::string full_url = url + "?model=" + model;
+
+            if (setenv("OPENAI_REALTIMEAPI", full_url.c_str(), 1) != 0) {
+                std::cerr << "Error setting environment variable" << std::endl;
+            }
+
+            if (setenv("OPENAI_API_KEY", api_key.c_str(), 1) != 0) {
+                std::cerr << "Error setting environment variable" << std::endl;
+            }
+            } catch (json::parse_error& e) {
+            std::cerr << "JSON parsing error: " << e.what() << std::endl;
+        }
+    }
+
+    if (websocket_mode) {
+        client = new WebSocketClient();
+        sample_rate = 24000;
+    } else {  // webrtc_mode
+        client = new WebRTCClient();
+        sample_rate = 8000;
+    }
+
     ThreadTimer timer;
     //timer.set(10, timerHandler);
     //timer.start();
@@ -203,16 +319,6 @@ int main(int argc, char* argv[]) {
     }
     #endif
 
-    if (std::strcmp(argv[1], "-s") == 0) {
-        client = new WebSocketClient();
-        sample_rate = 24000;
-    } else if (std::strcmp(argv[1], "-r") == 0) {
-        client = new WebRTCClient();
-        sample_rate = 8000;
-    } else {
-        std::cerr << "Invalid option. Use -s for WebSocketClient or -r for WebRTCClient." << std::endl;
-        return 1;
-    }
     oai_init_audio_alsa(sample_rate);
     oai_init_audio_decoder();
     client->init();
