@@ -18,6 +18,7 @@ public:
     
     bool loop() override;
     bool init() override;
+    void clearOutputBuffer() override;
     bool deinit();
     bool sendMessage(const std::string& message);
     

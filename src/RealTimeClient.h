@@ -18,6 +18,7 @@ public:
     virtual bool init() = 0;
     virtual bool quit();
     virtual bool sendMessage(const std::string& message) = 0;
+    virtual void clearOutputBuffer() = 0;
     
     virtual void onMessage(std::string& message);
     virtual void onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) {};

@@ -172,7 +172,6 @@ void Conversation::initializeEventProcessors() {
             return std::make_pair(item, deltaPart);
         }},
         {"response.audio.delta", [this](const Event& event) {
-            std::cout << "response.audio.delta" << std::endl;
             std::string item_id = event.data.at("item_id");
             int content_index = event.data.at("content_index").get<int>();
             std::string delta = event.data.at("delta");
@@ -185,6 +184,7 @@ void Conversation::initializeEventProcessors() {
             std::shared_ptr<ItemType> item = it->second;
             auto deltaPart = std::make_shared<ItemContentDeltaType>();
             Utils::base64DecodeAudio(delta, deltaPart->audio);
+            std::cout << "response.audio.delta:" << deltaPart->audio.size() << std::endl;
             return std::make_pair(item, deltaPart);
         }},
         {"response.text.delta", [this](const Event& event) {

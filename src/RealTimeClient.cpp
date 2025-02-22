@@ -113,8 +113,6 @@ void RealTimeClient::createResponse() {
 }
 
 void RealTimeClient::cancelAssistantSpeech() {
-    json clearItem;
-    clearItem["type"] = "output_audio_buffer.clear";
 
     std::shared_ptr<ItemType> recent = conversation.getRecentAssistantMessage();
     if (!recent) {
@@ -124,11 +122,15 @@ void RealTimeClient::cancelAssistantSpeech() {
 
     if (recent->status == "completed") {
         std::cerr << "No truncation needed, message is completed" << std::endl;
-        //sendMessage(clearItem.dump());
+        clearOutputBuffer();
         return;
     }
 
     try {
+        json cancelItem;
+        cancelItem["type"] = "response.cancel";
+        sendMessage(cancelItem.dump());
+
         auto now = std::chrono::steady_clock::now();
         auto elapse = std::chrono::duration_cast<std::chrono::milliseconds>(now - recent->time);
         json item;
@@ -141,11 +143,7 @@ void RealTimeClient::cancelAssistantSpeech() {
     } catch (const json::parse_error& e) {
         std::cerr << "Failed to parse conversation item JSON: " + std::string(e.what());
     }
-
-    json cancelItem;
-    cancelItem["type"] = "response.cancel";
-    sendMessage(cancelItem.dump());
-    //sendMessage(clearItem.dump());
+    clearOutputBuffer();
 }
 
 void RealTimeClient::updateSession(const std::string& msg) {

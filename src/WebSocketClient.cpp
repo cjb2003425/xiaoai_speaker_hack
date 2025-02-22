@@ -53,6 +53,7 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
 
     switch (reason) {
     case LWS_CALLBACK_PROTOCOL_DESTROY:
+        lwsl_info("protocol destroy\n");
         if (con->ring)
             lws_ring_destroy(con->ring);
 
@@ -89,13 +90,13 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
         break;
     }
     case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
-        lwsl_err("CLIENT_CONNECTION_ERROR: %s\n",
+        lwsl_err("connection error: %s\n",
              in ? (char *)in : "(null)");
         goto do_retry;
         break;
 
     case LWS_CALLBACK_CLIENT_RECEIVE:
-        lwsl_info("CLIENT_CONNECTION_RECEIVE\n");
+        lwsl_info("client receive\n");
         if (client) {
             // Append the newly received fragment to the ongoing message buffer
             client->recvmsg += std::string((char*)in, len);
@@ -124,7 +125,7 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
         break;
 
     case LWS_CALLBACK_CLIENT_WRITEABLE:
-        lwsl_info("CALLBACK_CLIENT_WRITEABLE\n");
+        lwsl_info("client writeable\n");
         pthread_mutex_lock(&con->lock_ring); /* --------- ring lock { */
         pmsg = static_cast<const msg*>(lws_ring_get_element(con->ring, &con->tail));
         if (!pmsg) {
@@ -154,10 +155,13 @@ skip:
 
 
     case LWS_CALLBACK_CLIENT_CLOSED:
+        lwsl_info("client closed\n");
         con->established = 0;
+        client->conversation.clear();
         goto do_retry;
 
     case LWS_CALLBACK_EVENT_WAIT_CANCELLED:
+        lwsl_info("event wait canclelled\n");
         if (con && con->wsi && con->established)
             lws_callback_on_writable(con->wsi);
         break;
@@ -434,5 +438,12 @@ void WebSocketClient::stopAudioThread() {
     
     if (audioThread.joinable()) {
         audioThread.join();
+    }
+}
+
+void WebSocketClient::clearOutputBuffer() {
+    std::unique_lock<std::mutex> lock(audioMutex);
+    while (!deltaQueue.empty()) {
+        deltaQueue.pop();
     }
 }

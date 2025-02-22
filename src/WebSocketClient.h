@@ -23,12 +23,13 @@ public:
     bool sendMessage(const std::string& message) override;
     void onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) override;
     void onAudioDone(std::shared_ptr<ItemType> item) override;
+    void clearOutputBuffer() override;
 
 private:
     static constexpr int PORT = 443;
     static constexpr int SSL_CONNECTION = LCCSCF_USE_SSL;
     static constexpr int BACKOFF_MS_NUM = 5;
-    static constexpr int MAX_BUFF_DELTA = 2;
+    static constexpr int MAX_BUFF_DELTA = 3;
     // Private methods
     static int callback(struct lws *wsi, enum lws_callback_reasons reason,
                         void *user, void *in, size_t len);

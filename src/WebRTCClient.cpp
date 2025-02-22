@@ -148,3 +148,9 @@ bool WebRTCClient::sendMessage(const std::string& message) {
 void WebRTCClient::onMessage(std::string& message) {
     RealTimeClient::onMessage(message);
 }
+
+void WebRTCClient::clearOutputBuffer() {
+    json clearItem;
+    clearItem["type"] = "output_audio_buffer.clear";
+    sendMessage(clearItem.dump());
+}

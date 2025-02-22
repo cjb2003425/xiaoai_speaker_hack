@@ -1,1 +1,62 @@
-build/compile_commands.json
+[
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/Authentication.cpp.o -c /root/xiaoai_speaker_hack/src/Authentication.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/Authentication.cpp",
+  "output": "src/CMakeFiles/chat.dir/Authentication.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/Conversation.cpp.o -c /root/xiaoai_speaker_hack/src/Conversation.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/Conversation.cpp",
+  "output": "src/CMakeFiles/chat.dir/Conversation.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/WebRTCClient.cpp.o -c /root/xiaoai_speaker_hack/src/WebRTCClient.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/WebRTCClient.cpp",
+  "output": "src/CMakeFiles/chat.dir/WebRTCClient.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/main.cpp.o -c /root/xiaoai_speaker_hack/src/main.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/main.cpp",
+  "output": "src/CMakeFiles/chat.dir/main.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/http.cpp.o -c /root/xiaoai_speaker_hack/src/http.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/http.cpp",
+  "output": "src/CMakeFiles/chat.dir/http.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/media.cpp.o -c /root/xiaoai_speaker_hack/src/media.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/media.cpp",
+  "output": "src/CMakeFiles/chat.dir/media.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/WebSocketClient.cpp.o -c /root/xiaoai_speaker_hack/src/WebSocketClient.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/WebSocketClient.cpp",
+  "output": "src/CMakeFiles/chat.dir/WebSocketClient.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/Utils.cpp.o -c /root/xiaoai_speaker_hack/src/Utils.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/Utils.cpp",
+  "output": "src/CMakeFiles/chat.dir/Utils.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/RealTimeClient.cpp.o -c /root/xiaoai_speaker_hack/src/RealTimeClient.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/RealTimeClient.cpp",
+  "output": "src/CMakeFiles/chat.dir/RealTimeClient.cpp.o"
+},
+{
+  "directory": "/root/xiaoai_speaker_hack/src",
+  "command": "/opt/gcc-linaro-7.5.0-2019.12-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++  -I/root/xiaoai_speaker_hack/src/../install/include -I/root/xiaoai_speaker_hack/src/../deps/libpeer/src  -Wno-psabi -o CMakeFiles/chat.dir/ubus.cpp.o -c /root/xiaoai_speaker_hack/src/ubus.cpp",
+  "file": "/root/xiaoai_speaker_hack/src/ubus.cpp",
+  "output": "src/CMakeFiles/chat.dir/ubus.cpp.o"
+}
+]

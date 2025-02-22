@@ -6,6 +6,7 @@
 #include <opus/opus.h>
 #include <time.h>
 #include "peer.h"
+#include <cmath>
 
 #define OPUS_OUT_BUFFER_SIZE 1276  // 1276 bytes is recommended by opus_encode
 #define SAMPLE_RATE 8000
@@ -15,6 +16,9 @@
 #define OPUS_ENCODER_BITRATE 30000
 #define OPUS_ENCODER_COMPLEXITY 0
 #define VOLUME_GAIN 1.4f  // Define a gain factor to increase the volume
+#define BUFFER_TIME 1000000   // Increase to 1000ms buffer
+#define PERIOD_TIME 20000    // Decrease to 20ms period for more frequent updates
+#define START_THRESHOLD 0.6   
 
 snd_pcm_t *pcm_handle_input;
 snd_pcm_t *pcm_handle_output;
@@ -24,13 +28,13 @@ OpusEncoder *opus_encoder = NULL;
 opus_int16 *encoder_input_buffer = NULL;
 uint8_t *encoder_output_buffer = NULL;
 FILE *output_file = NULL;
+static snd_pcm_uframes_t buffer_size = 0;
 
 void oai_init_audio_alsa(uint32_t sample_rate) {
     snd_pcm_hw_params_t *params;
     int channels = 1;
-    snd_pcm_uframes_t frames = BUFFER_SAMPLES;
-    snd_pcm_uframes_t buffer_size;
-    char *buffer;
+    unsigned int buffer_time = BUFFER_TIME;
+    unsigned int period_time = PERIOD_TIME;
     int pcm, dir;
 
     // Open the PCM device
@@ -42,29 +46,54 @@ void oai_init_audio_alsa(uint32_t sample_rate) {
     // Allocate hardware parameters object
     snd_pcm_hw_params_alloca(&params);
 
-    // Set default parameters
+    // Fill params with default values
     snd_pcm_hw_params_any(pcm_handle_output, params);
 
-    // Set access type (interleaved)
+    // Set access type
     snd_pcm_hw_params_set_access(pcm_handle_output, params, SND_PCM_ACCESS_RW_INTERLEAVED);
 
-    // Set sample format (16-bit signed little-endian)
+    // Set format
     snd_pcm_hw_params_set_format(pcm_handle_output, params, SND_PCM_FORMAT_S16_LE);
+
+    // Set channels
+    snd_pcm_hw_params_set_channels(pcm_handle_output, params, channels);
 
     // Set sample rate
     snd_pcm_hw_params_set_rate_near(pcm_handle_output, params, &sample_rate, &dir);
 
-    // Set number of channels
-    snd_pcm_hw_params_set_channels(pcm_handle_output, params, channels);
+    // Set buffer time and period time
+    snd_pcm_hw_params_set_buffer_time_near(pcm_handle_output, params, &buffer_time, &dir);
+    snd_pcm_hw_params_set_period_time_near(pcm_handle_output, params, &period_time, &dir);
 
-    snd_pcm_hw_params_set_period_size_near(pcm_handle_output, params, &frames, &dir);
-
-    // Apply hardware parameters to PCM device
+    // Apply hardware parameters
     if ((pcm = snd_pcm_hw_params(pcm_handle_output, params)) < 0) {
         fprintf(stderr, "ERROR: Can't set hardware parameters. %s\n", snd_strerror(pcm));
         snd_pcm_close(pcm_handle_output);
         return;
     }
+
+    // Configure software parameters
+    snd_pcm_sw_params_t *sw_params;
+    snd_pcm_sw_params_alloca(&sw_params);
+    snd_pcm_sw_params_current(pcm_handle_output, sw_params);
+    
+    // Set start threshold (30% of buffer size)
+    snd_pcm_sw_params_set_start_threshold(pcm_handle_output, sw_params, 
+                                        (snd_pcm_uframes_t)(buffer_size * START_THRESHOLD));
+    
+    // Set minimum available frames to wake up from waiting
+    snd_pcm_sw_params_set_avail_min(pcm_handle_output, sw_params, 
+                                   (snd_pcm_uframes_t)(buffer_size * 0.5));
+    
+    // Apply software parameters
+    if ((pcm = snd_pcm_sw_params(pcm_handle_output, sw_params)) < 0) {
+        fprintf(stderr, "ERROR: Can't set software parameters. %s\n", snd_strerror(pcm));
+        return;
+    }
+
+    // Prepare and start the PCM device
+    snd_pcm_prepare(pcm_handle_output);
+    snd_pcm_start(pcm_handle_output);
 }
 
 void oai_init_audio_decoder() {
