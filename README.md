@@ -25,6 +25,7 @@ To build and run the project, follow these steps:
     ```
 
 2. Build the project:
+
     For arm:
     ```sh
     cmake -S . -B build --toolchain=toolchain.cmake
@@ -35,26 +36,27 @@ To build and run the project, follow these steps:
     ``` 
 
 3. Run the application:
+
     Download config from website(your own http server):
     ```sh
-    ./xiaoai_speaker_hack --host <address> --key <key_string> --websocket
+    ./chat --host <address> --key <key_string> --websocket
     ```
 
     or
 
     ```sh
-    ./xiaoai_speaker_hack --host <address> --key <key_string> --webrtc
+    ./chat --host <address> --key <key_string> --webrtc
     ```
 
     Use the local config file (/data/env_config):
     ```sh
-    ./xiaoai_speaker_hack --websocket
+    ./chat --websocket
     ```
 
     or
 
     ```sh
-    ./xiaoai_speaker_hack --webrtc
+    ./chat --webrtc
     ```
 
 ## Configuration

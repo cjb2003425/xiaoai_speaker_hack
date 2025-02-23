@@ -25,6 +25,7 @@ https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-
     ```
 
 2. 构建项目：
+
     对于 ARM：
     ```sh
     cmake -S . -B build --toolchain=toolchain.cmake
@@ -35,26 +36,27 @@ https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-
     ``` 
 
 3. 运行应用程序：
+
     从网站下载配置(自建http服务器)：
     ```sh
-    ./xiaoai_speaker_hack --host <address> --key <key_string> --websocket
+    ./chat --host <address> --key <key_string> --websocket
     ```
 
     或者
 
     ```sh
-    ./xiaoai_speaker_hack --host <address> --key <key_string> --webrtc
+    ./chat --host <address> --key <key_string> --webrtc
     ```
 
     使用本地配置文件 (/data/env_config)：
     ```sh
-    ./xiaoai_speaker_hack --websocket
+    ./chat --websocket
     ```
 
     或者
 
     ```sh
-    ./xiaoai_speaker_hack --webrtc
+    ./chat --webrtc
     ```
 
 ## 配置
