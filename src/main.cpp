@@ -17,6 +17,7 @@
 #include "WebRTCClient.h"
 #include "HttpAPI.h"
 #include <getopt.h>
+#include <atomic>
 
 using json = nlohmann::json;
 using namespace std;
@@ -31,6 +32,7 @@ RealTimeClient *client = nullptr;
 
 string host_address = "localhost";  // default value
 string key_string = "";
+static std::atomic<bool> monitoring_active{true};
 
 #if defined(__arm__)
 int store(json& data) {
@@ -101,25 +103,49 @@ void monitorFileChanges() {
     }
 
     char buffer[1024];
-    while (true) {
-        int length = read(fd, buffer, sizeof(buffer));
-        if (length == -1) {
-            cerr << "Error reading events!" << std::endl;
-            close(fd);
-            return;
+    struct timeval timeout;
+    fd_set fds;
+
+    while (monitoring_active) {
+        // Set up the file descriptor set
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+
+        // Set timeout for select (100ms)
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 100000;
+
+        // Wait for events with timeout
+        int ret = select(fd + 1, &fds, NULL, NULL, &timeout);
+        
+        if (ret < 0) {
+            cerr << "Error in select!" << std::endl;
+            break;
+        }
+        
+        if (ret == 0) {
+            // Timeout - check if we should continue
+            continue;
         }
 
-        int i = 0;
-        while (i < length) {
-            struct inotify_event* event = (struct inotify_event*)&buffer[i];
-            if (event->mask & IN_MODIFY) {
-                // Get the file name associated with the watch descriptor
-                parseFileContent(instruction_file_name);
+        if (FD_ISSET(fd, &fds)) {
+            int length = read(fd, buffer, sizeof(buffer));
+            if (length == -1) {
+                cerr << "Error reading events!" << std::endl;
+                break;
             }
-            i += sizeof(struct inotify_event) + event->len;
+
+            int i = 0;
+            while (i < length) {
+                struct inotify_event* event = (struct inotify_event*)&buffer[i];
+                if (event->mask & IN_MODIFY) {
+                    parseFileContent(instruction_file_name);
+                }
+                i += sizeof(struct inotify_event) + event->len;
+            }
         }
     }
-
+    std::cout << "Monitoring stopped" << std::endl;
     // Clean up
     inotify_rm_watch(fd, wd);
     close(fd);
@@ -128,7 +154,9 @@ void monitorFileChanges() {
 
 void handle_siginit(int sig) {
     cout << "handle sigint" << endl;
-    exit(1);
+    monitoring_active = false;
+    ubus_exit();
+    client->quit();
 }
 
 void loadEnvConfig(const std::string& filePath) {
@@ -323,6 +351,7 @@ int main(int argc, char* argv[]) {
     oai_init_audio_decoder();
     client->init();
     client->loop();
+    std::cout << "exit..." << std::endl;
     #if defined(__arm__)
     file_monitor.join();
     ubus_monitor.join();

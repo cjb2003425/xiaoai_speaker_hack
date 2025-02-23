@@ -20,6 +20,7 @@ public:
     // Public methods
     bool init() override; // Initiate a connection
     bool loop() override; // Loop to process events
+    bool quit() override;
     bool sendMessage(const std::string& message) override;
     void onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) override;
     void onAudioDone(std::shared_ptr<ItemType> item) override;

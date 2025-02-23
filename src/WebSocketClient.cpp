@@ -447,3 +447,9 @@ void WebSocketClient::clearOutputBuffer() {
         deltaQueue.pop();
     }
 }
+
+bool WebSocketClient::quit() {
+    quitRequest = true;
+    stopAudioThread();
+    return true;
+}

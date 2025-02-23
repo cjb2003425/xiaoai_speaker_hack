@@ -212,3 +212,10 @@ void ubus_wait_first_wakeup() {
     unique_lock<mutex> lock(wakeup_mtx);
     wakeup_cond.wait(lock, []{ return wakeup_occurred; });
 }
+
+void ubus_exit() {
+    lock_guard<mutex> lock(wakeup_mtx);
+    wakeup_occurred = true; 
+    wakeup_cond.notify_all();
+    uloop_end();
+}

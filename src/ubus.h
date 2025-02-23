@@ -9,4 +9,5 @@
 
 void ubus_monitor_fun();
 void ubus_wait_first_wakeup(); 
+void ubus_exit();
 #endif
