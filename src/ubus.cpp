@@ -161,7 +161,7 @@ static void ubus_monitor_cb(struct ubus_context *ctx, uint32_t seq, struct blob_
     
     data = ubus_get_monitor_data(tb[UBUS_MONITOR_DATA]);
     json json_data = json::parse(data);
-    cout << "--> " << json_data["method"] << endl;
+    //cout << "--> " << json_data["method"] << endl;
     if (json_data["data"]["action"] == "start" && json_data["method"] == "player_wakeup") {
         RealTimeClient* client = oai_get_client();
         if (client) {

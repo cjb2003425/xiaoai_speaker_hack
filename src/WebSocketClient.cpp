@@ -25,7 +25,7 @@ const uint32_t WebSocketClient::backoff_ms[BACKOFF_MS_NUM] = { 1000, 2000, 3000,
 const lws_retry_bo_t WebSocketClient::retry = {
     .retry_ms_table            = backoff_ms,
     .retry_ms_table_count        = LWS_ARRAY_SIZE(backoff_ms),
-    .conceal_count            = LWS_ARRAY_SIZE(backoff_ms),
+    .conceal_count            = 0xffff,
 
     .secs_since_valid_ping        = 3,  /* force PINGs after secs idle */
     .secs_since_valid_hangup    = 10, /* hangup after secs idle */
