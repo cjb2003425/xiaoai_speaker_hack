@@ -155,7 +155,9 @@ void monitorFileChanges() {
 void handle_siginit(int sig) {
     cout << "handle sigint" << endl;
     monitoring_active = false;
+    #if defined(__arm__)
     ubus_exit();
+    #endif
     client->quit();
 }
 

@@ -29,10 +29,12 @@ https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/arm-linux-
     对于 ARM：
     ```sh
     cmake -S . -B build --toolchain=toolchain.cmake
+    cmake --build build
     ```
     对于 x86：
     ```sh
     cmake -S . -B build
+    cmake --build build
     ``` 
 
 3. 运行应用程序：

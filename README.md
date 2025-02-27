@@ -29,10 +29,12 @@ To build and run the project, follow these steps:
     For arm:
     ```sh
     cmake -S . -B build --toolchain=toolchain.cmake
+    cmake --build build
     ```
     For x86:
     ```sh
     cmake -S . -B build
+    cmake --build build
     ``` 
 
 3. Run the application:
