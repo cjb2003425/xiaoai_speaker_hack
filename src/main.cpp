@@ -297,29 +297,34 @@ int main(int argc, char* argv[]) {
 
     signal(SIGINT, handle_siginit);
 
-    std::string data = getConfigFromServer(host_address, key_string);
-    if (data.empty()) {
-        std::cerr << "Failed to get config from server" << std::endl;
+    if (host_address.empty() || key_string.empty()) {
+        std::cerr << "No host address or key string are provied" << std::endl;
         loadEnvConfig(env_config_path);
     } else {
-        std::cout << "Get config successfully" << std::endl;
+        std::string data = getConfigFromServer(host_address, key_string);
+        if (data.empty()) {
+            std::cerr << "Failed to get config from server" << std::endl;
+            loadEnvConfig(env_config_path);
+        } else {
+            std::cout << "Get config successfully" << std::endl;
 
-        try {
-            json config = json::parse(data);    
-            std::string url = config["base_url"];
-            std::string api_key = config["api_key"];
-            std::string model = config["model"];
-            std::string full_url = url + "?model=" + model;
+            try {
+                json config = json::parse(data);    
+                std::string url = config["base_url"];
+                std::string api_key = config["api_key"];
+                std::string model = config["model"];
+                std::string full_url = url + "?model=" + model;
 
-            if (setenv("OPENAI_REALTIMEAPI", full_url.c_str(), 1) != 0) {
-                std::cerr << "Error setting environment variable" << std::endl;
+                if (setenv("OPENAI_REALTIMEAPI", full_url.c_str(), 1) != 0) {
+                    std::cerr << "Error setting environment variable" << std::endl;
+                }
+
+                if (setenv("OPENAI_API_KEY", api_key.c_str(), 1) != 0) {
+                    std::cerr << "Error setting environment variable" << std::endl;
+                }
+                } catch (json::parse_error& e) {
+                std::cerr << "JSON parsing error: " << e.what() << std::endl;
             }
-
-            if (setenv("OPENAI_API_KEY", api_key.c_str(), 1) != 0) {
-                std::cerr << "Error setting environment variable" << std::endl;
-            }
-            } catch (json::parse_error& e) {
-            std::cerr << "JSON parsing error: " << e.what() << std::endl;
         }
     }
 

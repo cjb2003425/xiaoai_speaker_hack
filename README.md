@@ -20,8 +20,9 @@ To build and run the project, follow these steps:
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/xiaoai_speaker_hack.git
+    git clone https://github.com/cjb2003425/xiaoai_speaker_hack.git
     cd xiaoai_speaker_hack
+    git submodule update --init --recursive
     ```
 
 2. Build the project:

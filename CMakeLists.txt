@@ -4,7 +4,6 @@ project(chat)
 
 # Add source directories
 set(SRC_DIRS
-  "deps/libpeer"
   "src"
 )
 

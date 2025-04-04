@@ -74,8 +74,8 @@ void RealTimeClient::onMessage(std::string& message) {
         json eventJson = json::parse(message);
         event.type = eventJson["type"];
         event.data = eventJson;
-        //std::cout << "event: " << event.type << std::endl;
-        //std::cout << "data" << event.data.dump() << std::endl;
+        std::cout << "event: " << event.type << std::endl;
+        std::cout << "data" << event.data.dump() << std::endl;
 
         // Process the event
         std::pair<std::shared_ptr<ItemType>, std::shared_ptr<ItemContentDeltaType>> ret = conversation.processEvent(event);
