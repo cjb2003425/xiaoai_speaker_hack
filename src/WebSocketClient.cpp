@@ -192,7 +192,7 @@ do_retry:
 }
 
 const struct lws_protocols WebSocketClient::protocols[2] = {
-    { "wss", callback, 0, 0, 0, NULL, 0 },
+    { "lws-client", callback, 0, 0, 0, NULL, 0 },
     LWS_PROTOCOL_LIST_TERM
 };
 
@@ -211,22 +211,58 @@ void WebSocketClient::connectClient(lws_sorted_usec_list_t *sul)
         return;
     }
     
+    std::string hostname;
+    std::string path;
+    std::string protocol;
+
+    // Find protocol separator
     size_t pos = url.find("://");
-    std::string hostname = url.substr(pos + 3, url.find('/', pos + 3) - (pos + 3));
-    std::string path = url.substr(url.find('/', pos + 3));
+    if (pos == std::string::npos) {
+        lwsl_err("Invalid URL format: missing protocol separator\n");
+        return;
+    }
+
+    // Extract protocol
+    protocol = url.substr(0, pos);
+    if (protocol != "wss" && protocol != "ws") {
+        lwsl_err("Invalid WebSocket protocol: %s (must be 'ws' or 'wss')\n", protocol.c_str());
+        return;
+    }
+
+    // Log the connection details
+    std::cout << "Protocol: " << protocol << std::endl;
+    std::cout << "Using SSL: " << (protocol == "wss" ? "yes" : "no") << std::endl;
+
+    // Find the first '/' after the host
+    size_t pathPos = url.find('/', pos + 3);
+    if (pathPos == std::string::npos) {
+        // No path specified, use root path
+        hostname = url.substr(pos + 3);
+        path = "/";
+    } else {
+        hostname = url.substr(pos + 3, pathPos - (pos + 3));
+        path = url.substr(pathPos);
+    }
+
+    // Remove any trailing port number from hostname if present
+    size_t portPos = hostname.find(':');
+    if (portPos != std::string::npos) {
+        hostname = hostname.substr(0, portPos);
+    }
 
     std::cout << "Hostname: " << hostname << std::endl;
     std::cout << "Path: " << path << std::endl;
+    std::cout << "Port: " << mco->port << std::endl;
 
     memset(&i, 0, sizeof(i));
 
     i.context = mco->context;
-    i.port = PORT;
+    i.port = mco->port;
     i.address = hostname.c_str();
     i.path = path.c_str();
     i.host = i.address;
     i.origin = i.address;
-    i.ssl_connection = SSL_CONNECTION;
+    i.ssl_connection = (protocol == "wss") ? LCCSCF_USE_SSL : 0;
     i.protocol = NULL;
     i.pwsi = &mco->wsi;
     i.retry_and_idle_policy = &retry;
@@ -292,6 +328,7 @@ WebSocketClient::WebSocketClient() {
     // Start audio processing thread
     audioThreadRunning = true;
     responseDone = false;
+    setListeningPort(PORT);
     audioThread = std::thread(&WebSocketClient::audioProcessingThread, this);
 }
 
@@ -424,7 +461,15 @@ void WebSocketClient::audioProcessingThread() {
         }
         
         if (buffer->size() > 0 && !wakeupOn) {
-            oai_audio_write(buffer->get(), buffer->size() / 2);
+            if (!rawAudio) {
+                // Decode the audio data
+                oai_audio_decode(buffer->get(), buffer->size());
+            } else {
+                oai_audio_write(buffer->get(), buffer->size() / 2);
+                // Write the raw audio data directly
+                std::cout << "write raw audio" << std::endl;
+
+            }
         }
     }
 }
@@ -452,4 +497,8 @@ bool WebSocketClient::quit() {
     quitRequest = true;
     stopAudioThread();
     return true;
+}
+
+void WebSocketClient::setListeningPort(int port) {
+    mConnectionInfo.port = port;
 }

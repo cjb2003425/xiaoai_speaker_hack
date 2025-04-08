@@ -21,16 +21,20 @@ public:
     bool init() override; // Initiate a connection
     bool loop() override; // Loop to process events
     bool quit() override;
-    bool sendMessage(const std::string& message) override;
+    void setListeningPort(int port);
+    bool sendMessage(const std::string &message) override;
     void onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) override;
     void onAudioDone(std::shared_ptr<ItemType> item) override;
     void clearOutputBuffer() override;
 
+    virtual bool isRawAudio() const { return rawAudio; }
+    virtual void setRawAudio(bool value) { rawAudio = value; }
+
 private:
     static constexpr int PORT = 443;
-    static constexpr int SSL_CONNECTION = LCCSCF_USE_SSL;
     static constexpr int BACKOFF_MS_NUM = 5;
-    static constexpr int MAX_BUFF_DELTA = 3;
+    static constexpr int MAX_BUFF_DELTA = 0;
+    static constexpr int ssl_connection = LCCSCF_USE_SSL;
     // Private methods
     static int callback(struct lws *wsi, enum lws_callback_reasons reason,
                         void *user, void *in, size_t len);
@@ -49,6 +53,7 @@ private:
         pthread_mutex_t lock_ring; /* serialize access to the ring buffer */
         uint32_t tail;
         bool established;
+        int port;
     };
 
     // Private members
@@ -67,6 +72,7 @@ private:
     std::thread audioThread;
     bool audioThreadRunning;
     bool responseDone;
+    bool rawAudio = true;
 
     void audioProcessingThread();
     void stopAudioThread();

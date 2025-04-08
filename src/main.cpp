@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "WebSocketClient.h"
 #include "WebRTCClient.h"
+#include "CustomWebSocketClient.h" // Include the missing header
 #include "HttpAPI.h"
 #include <getopt.h>
 #include <atomic>
@@ -33,6 +34,7 @@ RealTimeClient *client = nullptr;
 string host_address = "localhost";  // default value
 string key_string = "";
 static std::atomic<bool> monitoring_active{true};
+bool custom_websocket_mode = false;
 
 #if defined(__arm__)
 int store(json& data) {
@@ -254,19 +256,23 @@ int main(int argc, char* argv[]) {
         {"key", required_argument, 0, 'k'},
         {"websocket", no_argument, 0, 's'},
         {"webrtc", no_argument, 0, 'r'},
+        {"custom", no_argument, 0, 'p'},  // Add new option
         {0, 0, 0, 0}
     };
 
     int opt;
     int option_index = 0;
 
-    while ((opt = getopt_long(argc, argv, "srh:k:", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "srph:k:", long_options, &option_index)) != -1) {
         switch (opt) {
             case 's':
                 websocket_mode = true;
                 break;
             case 'r':
                 webrtc_mode = true;
+                break;
+            case 'p':
+                custom_websocket_mode = true;
                 break;
             case 'h':
                 host_address = optarg;
@@ -275,23 +281,26 @@ int main(int argc, char* argv[]) {
                 key_string = optarg;
                 break;
             default:
-                std::cerr << "Usage: " << argv[0] << " (-s | -r) [--host <address>] [--key <key_string>]" << std::endl;
+                std::cerr << "Usage: " << argv[0] << " (-s | -r | -p) [--host <address>] [--key <key_string>]" << std::endl;
                 std::cerr << "Options:" << std::endl;
                 std::cerr << "  -s, --websocket       Use WebSocket client" << std::endl;
                 std::cerr << "  -r, --webrtc         Use WebRTC client" << std::endl;
+                std::cerr << "  -p, --custom         Use Custom WebSocket client" << std::endl;
                 std::cerr << "  -h, --host <address> Specify host address (default: localhost)" << std::endl;
                 std::cerr << "  -k, --key <string>   Specify key string" << std::endl;
                 return 1;
         }
     }
 
-    if (!websocket_mode && !webrtc_mode) {
-        std::cerr << "Error: Must specify either -s/--websocket or -r/--webrtc mode" << std::endl;
+    if (!websocket_mode && !webrtc_mode && !custom_websocket_mode) {
+        std::cerr << "Error: Must specify either -s/--websocket, -r/--webrtc, or -p/--custom mode" << std::endl;
         return 1;
     }
 
-    if (websocket_mode && webrtc_mode) {
-        std::cerr << "Error: Cannot specify both websocket and webrtc modes" << std::endl;
+    if ((websocket_mode && webrtc_mode) || 
+        (websocket_mode && custom_websocket_mode) || 
+        (webrtc_mode && custom_websocket_mode)) {
+        std::cerr << "Error: Cannot specify multiple modes" << std::endl;
         return 1;
     }
 
@@ -331,14 +340,17 @@ int main(int argc, char* argv[]) {
     if (websocket_mode) {
         client = new WebSocketClient();
         sample_rate = 24000;
+    } else if (custom_websocket_mode) {
+        client = new CustomWebSocketClient();
+        sample_rate = 24000;
     } else {  // webrtc_mode
         client = new WebRTCClient();
         sample_rate = 8000;
     }
 
     ThreadTimer timer;
-    //timer.set(10, timerHandler);
-    //timer.start();
+    timer.set(5, timerHandler);
+    timer.start();
     #if defined(__arm__)
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
@@ -355,7 +367,7 @@ int main(int argc, char* argv[]) {
     #endif
 
     oai_init_audio_alsa(sample_rate);
-    oai_init_audio_decoder();
+    oai_init_audio_decoder(sample_rate);
     client->init();
     client->loop();
     std::cout << "exit..." << std::endl;

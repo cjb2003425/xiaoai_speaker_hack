@@ -3,7 +3,7 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Define source files
-set(SRC "HttpAPI.cpp" "Conversation.cpp" "WebRTCClient.cpp" "main.cpp" "http.cpp" "media.cpp" "WebSocketClient.cpp" "Utils.cpp" "RealTimeClient.cpp")
+set(SRC "HttpAPI.cpp" "Conversation.cpp" "WebRTCClient.cpp" "main.cpp" "http.cpp" "media.cpp" "CustomWebSocketClient.cpp""WebSocketClient.cpp" "Utils.cpp" "RealTimeClient.cpp")
 
 set(LIBS "peer" "curl" "z" "pthread" "asound" "opus" "crypto" "websockets")
 

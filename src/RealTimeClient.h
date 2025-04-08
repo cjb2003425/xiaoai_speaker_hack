@@ -23,11 +23,11 @@ public:
     virtual void onMessage(std::string& message);
     virtual void onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) {};
     virtual void onAudioDone(std::shared_ptr<ItemType> item) {};
-    void createConversationitem(std::string& message);
+    virtual void createConversationitem(std::string& message);
+    virtual void createResponse();
+    virtual void cancelAssistantSpeech();
     void clearOlderItems();
-    void createResponse();
     void updateSession(const std::string& message);
-    void cancelAssistantSpeech();
     void setFrequency(int frequency) {
         conversation.frequency = frequency;
     };

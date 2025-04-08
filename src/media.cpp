@@ -9,8 +9,7 @@
 #include <cmath>
 
 #define OPUS_OUT_BUFFER_SIZE 1276  // 1276 bytes is recommended by opus_encode
-#define SAMPLE_RATE 8000
-#define BUFFER_SAMPLES 320
+#define BUFFER_SAMPLES 480  // Reduced to handle 10ms chunks
 #define PCM_DEVICE "default" // Default ALSA playback device
 
 #define OPUS_ENCODER_BITRATE 30000
@@ -96,24 +95,48 @@ void oai_init_audio_alsa(uint32_t sample_rate) {
     snd_pcm_start(pcm_handle_output);
 }
 
-void oai_init_audio_decoder() {
+void oai_init_audio_decoder(uint32_t sample_rate) {
+    if (opus_decoder != NULL) {
+        opus_decoder_destroy(opus_decoder);
+        opus_decoder = NULL;
+    }
+
     int decoder_error = 0;
-    opus_decoder = opus_decoder_create(SAMPLE_RATE, 1, &decoder_error);
+    opus_decoder = opus_decoder_create(sample_rate, 1, &decoder_error);
     if (decoder_error != OPUS_OK) {
-        fprintf(stderr, "Failed to create OPUS decoder\n");
+        fprintf(stderr, "Failed to create OPUS decoder: %d\n", decoder_error);
+        return;
+    }
+
+    // Free existing buffer if any
+    if (output_buffer != NULL) {
+        free(output_buffer);
+    }
+
+    // Use size_t to avoid integer overflow and add safety margin
+    size_t buffer_size = BUFFER_SAMPLES * sizeof(opus_int16);
+    output_buffer = (opus_int16 *)calloc(BUFFER_SAMPLES, sizeof(opus_int16));  // Added safety margin
+    if (!output_buffer) {
+        fprintf(stderr, "Failed to allocate output buffer (size: %zu bytes)\n", buffer_size);
+        opus_decoder_destroy(opus_decoder);
+        opus_decoder = NULL;
         return;
     }
 
     #ifdef AUDIO_DEBUG
-    // Open the file for writing binary data
-    output_file = fopen("/tmp/ai.wav", "ab"); // Append binary mode
+    if (output_file != NULL) {
+        fclose(output_file);
+    }
+    output_file = fopen("/tmp/ai.wav", "ab");
     if (output_file == NULL) {
         perror("Failed to open output file");
+        free(output_buffer);
+        output_buffer = NULL;
+        opus_decoder_destroy(opus_decoder);
+        opus_decoder = NULL;
         return;
     }
     #endif
-
-    output_buffer = (opus_int16 *)malloc(BUFFER_SAMPLES * sizeof(opus_int16));
 }
 
 ssize_t oai_audio_write(const void* data, snd_pcm_uframes_t size) {
@@ -137,22 +160,48 @@ ssize_t oai_audio_write(const void* data, snd_pcm_uframes_t size) {
 }
 
 void oai_audio_decode(uint8_t *data, size_t size) {
+    const size_t CHUNK_SIZE = 480; // 20ms at 24kHz, typical Opus frame size
     ssize_t res = 0;
-    int decoded_size = opus_decode(opus_decoder, data, size, output_buffer, BUFFER_SAMPLES, 0);
-    if (decoded_size > 0) {
-        #ifdef AUDIO_DEBUG
-        //size_t written = fwrite(output_buffer, sizeof(int16_t), decoded_size, output_file);
-        if (written != (size_t)decoded_size) {
-            fprintf(stderr, "Failed to write all decoded data to file\n");
+    size_t offset = 0;
+    
+    fprintf(stderr, "oai_audio_decode: total size %zu\n", size);
+    
+    // Check for null data or invalid buffer
+    if (!data || !output_buffer) {
+        fprintf(stderr, "Invalid data or buffer in oai_audio_decode\n");
+        return;
+    }
+    
+    while (offset < size) {
+        size_t current_chunk = size - offset;
+        if (current_chunk > CHUNK_SIZE) {
+            current_chunk = CHUNK_SIZE;
         }
-        #endif
-        res = oai_audio_write(output_buffer, decoded_size);
+        
+        int decoded_size = opus_decode(opus_decoder, data + offset, current_chunk, 
+                                     output_buffer, CHUNK_SIZE, 0);
+        
+        if (decoded_size < 0) {
+            fprintf(stderr, "Opus decode error at offset %zu: %d\n", offset, decoded_size);
+            return;
+        }
+        
+        if (decoded_size > 0) {
+            res = oai_audio_write(output_buffer, decoded_size);
+            if (res < 0) {
+                fprintf(stderr, "Failed to write audio chunk at offset %zu: %s\n", 
+                        offset, snd_strerror(res));
+                return;
+            }
+        }
+        
+        offset += current_chunk;
     }
 }
 
-void oai_init_audio_encoder() {
+void oai_init_audio_encoder(uint32_t sample_rate) {
     int encoder_error;
-    opus_encoder = opus_encoder_create(SAMPLE_RATE, 1, OPUS_APPLICATION_VOIP, &encoder_error);
+    opus_encoder = opus_encoder_create(sample_rate, 1, OPUS_APPLICATION_VOIP, &encoder_error);
     if (encoder_error != OPUS_OK) {
         fprintf(stderr, "Failed to create OPUS encoder\n");
         return;
