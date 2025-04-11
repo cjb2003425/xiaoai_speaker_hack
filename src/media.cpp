@@ -9,12 +9,12 @@
 #include <cmath>
 
 #define OPUS_OUT_BUFFER_SIZE 1276  // 1276 bytes is recommended by opus_encode
-#define BUFFER_SAMPLES 480  // Reduced to handle 10ms chunks
+#define BUFFER_SAMPLES 960  // Reduced to handle 30ms chunks
 #define PCM_DEVICE "default" // Default ALSA playback device
 
 #define OPUS_ENCODER_BITRATE 30000
 #define OPUS_ENCODER_COMPLEXITY 0
-#define VOLUME_GAIN 1.6f  // Define a gain factor to increase the volume
+#define VOLUME_GAIN 1.2f  // Define a gain factor to increase the volume
 #define BUFFER_TIME 1000000   // Increase to 1000ms buffer
 #define PERIOD_TIME 20000    // Decrease to 20ms period for more frequent updates
 #define START_THRESHOLD 0.6   
@@ -113,9 +113,9 @@ void oai_init_audio_decoder(uint32_t sample_rate) {
         free(output_buffer);
     }
 
-    // Use size_t to avoid integer overflow and add safety margin
-    size_t buffer_size = BUFFER_SAMPLES * sizeof(opus_int16);
-    output_buffer = (opus_int16 *)calloc(BUFFER_SAMPLES, sizeof(opus_int16));  // Added safety margin
+    // Increase buffer size
+    size_t buffer_size = BUFFER_SAMPLES * sizeof(opus_int16);  // 40ms at 24kHz
+    output_buffer = (opus_int16 *)calloc(BUFFER_SAMPLES, sizeof(opus_int16));
     if (!output_buffer) {
         fprintf(stderr, "Failed to allocate output buffer (size: %zu bytes)\n", buffer_size);
         opus_decoder_destroy(opus_decoder);
@@ -160,42 +160,78 @@ ssize_t oai_audio_write(const void* data, snd_pcm_uframes_t size) {
 }
 
 void oai_audio_decode(uint8_t *data, size_t size) {
-    const size_t CHUNK_SIZE = 480; // 20ms at 24kHz, typical Opus frame size
+    // Increase buffer size to handle larger Opus frames
     ssize_t res = 0;
     size_t offset = 0;
     
     fprintf(stderr, "oai_audio_decode: total size %zu\n", size);
     
-    // Check for null data or invalid buffer
     if (!data || !output_buffer) {
         fprintf(stderr, "Invalid data or buffer in oai_audio_decode\n");
         return;
     }
+
+    if (size < 2) {
+        fprintf(stderr, "Packet too small to be valid Opus data (size: %zu)\n", size);
+        return;
+    }
+
+    // Try to decode the entire packet at once first
+    int decoded_size = opus_decode(opus_decoder, 
+                                 data,
+                                 size,
+                                 output_buffer,
+                                 BUFFER_SAMPLES,
+                                 0);
     
+    if (decoded_size > 0) {
+        // Successfully decoded whole packet
+        res = oai_audio_write(output_buffer, decoded_size);
+        if (res < 0) {
+            fprintf(stderr, "Failed to write audio: %s\n", snd_strerror(res));
+        }
+        return;
+    }
+
+    // If whole packet decode failed, try to find valid Opus frames
     while (offset < size) {
-        size_t current_chunk = size - offset;
-        if (current_chunk > CHUNK_SIZE) {
-            current_chunk = CHUNK_SIZE;
+        // Look for Opus frame marker (0xFF)
+        while (offset < size && data[offset] != 0xFF) {
+            offset++;
         }
         
-        int decoded_size = opus_decode(opus_decoder, data + offset, current_chunk, 
-                                     output_buffer, CHUNK_SIZE, 0);
-        
-        if (decoded_size < 0) {
-            fprintf(stderr, "Opus decode error at offset %zu: %d\n", offset, decoded_size);
-            return;
+        if (offset + 1 >= size) {
+            break;
+        }
+
+        // Try to determine frame size from header
+        size_t frame_size = 0;
+        if ((data[offset + 1] & 0xFC) == 0xFC) {
+            frame_size = (data[offset + 1] & 0x03) * 64;
         }
         
+        if (frame_size == 0 || offset + frame_size > size) {
+            frame_size = size - offset;
+        }
+
+        decoded_size = opus_decode(opus_decoder,
+                                 data + offset,
+                                 frame_size,
+                                 output_buffer,
+                                 BUFFER_SAMPLES,
+                                 0);
+
         if (decoded_size > 0) {
             res = oai_audio_write(output_buffer, decoded_size);
             if (res < 0) {
-                fprintf(stderr, "Failed to write audio chunk at offset %zu: %s\n", 
-                        offset, snd_strerror(res));
+                fprintf(stderr, "Failed to write audio frame: %s\n", snd_strerror(res));
                 return;
             }
+            offset += frame_size;
+        } else {
+            // Skip this byte and continue searching
+            offset++;
         }
-        
-        offset += current_chunk;
     }
 }
 

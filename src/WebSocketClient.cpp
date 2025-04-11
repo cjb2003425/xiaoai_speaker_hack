@@ -98,24 +98,34 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
     case LWS_CALLBACK_CLIENT_RECEIVE:
         lwsl_info("client receive\n");
         if (client) {
-            // Append the newly received fragment to the ongoing message buffer
-            client->recvmsg += std::string((char*)in, len);
+            // Check if the received data is binary
+            bool is_binary = lws_frame_is_binary(wsi);
+            lwsl_info("Received %s data\n", is_binary ? "binary" : "text");
 
-            // Check if we have a complete JSON message
-            int openBraces = 0;
-            int closeBraces = 0;
-            for (char c : client->recvmsg) {
-                if (c == '{') {
-                    openBraces++;
-                } else if (c == '}') {
-                    closeBraces++;
+            // Handle binary data differently from text data
+            if (is_binary) {
+                // Handle binary data directly
+                client->onBinaryMessage((const uint8_t*)in, len);
+            } else {
+                // Handle text data (existing JSON processing)
+                client->recvmsg += std::string((char*)in, len);
+
+                // Check if we have a complete JSON message
+                int openBraces = 0;
+                int closeBraces = 0;
+                for (char c : client->recvmsg) {
+                    if (c == '{') {
+                        openBraces++;
+                    } else if (c == '}') {
+                        closeBraces++;
+                    }
                 }
-            }
 
-            // If the number of opening and closing braces match, we have a complete JSON message
-            if (openBraces > 0 && openBraces == closeBraces) {
-                client->onMessage(client->recvmsg); // Process the complete message
-                client->recvmsg.clear(); // Clear the buffer for the next message
+                // If the number of opening and closing braces match, we have a complete JSON message
+                if (openBraces > 0 && openBraces == closeBraces) {
+                    client->onMessage(client->recvmsg); // Process the complete message
+                    client->recvmsg.clear(); // Clear the buffer for the next message
+                }
             }
         }
         break;
@@ -391,6 +401,12 @@ void WebSocketClient::onMessage(std::string& message) {
     RealTimeClient::onMessage(message);
 }
 
+void WebSocketClient::onBinaryMessage(const uint8_t* data, size_t len) {
+    auto deltaPart = std::make_shared<ItemContentDeltaType>();
+    deltaPart->audio.append(data, len);
+    onAudioDelta(deltaPart);
+}
+
 void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) {
     #ifdef AUDIO_DEBUG
     static int fileIndex = 0;
@@ -491,6 +507,14 @@ void WebSocketClient::clearOutputBuffer() {
     while (!deltaQueue.empty()) {
         deltaQueue.pop();
     }
+}
+
+void WebSocketClient::onClientEstablished()
+{
+}
+
+void WebSocketClient::onClientClosed()
+{
 }
 
 bool WebSocketClient::quit() {

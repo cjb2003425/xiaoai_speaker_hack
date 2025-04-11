@@ -29,6 +29,8 @@ public:
 
     virtual bool isRawAudio() const { return rawAudio; }
     virtual void setRawAudio(bool value) { rawAudio = value; }
+    virtual void onClientEstablished();
+    virtual void onClientClosed();
 
 private:
     static constexpr int PORT = 443;
@@ -42,6 +44,8 @@ private:
     static void connectClient(lws_sorted_usec_list_t *sul);
     static void destroy_message(void *_msg);
     void onMessage(std::string& message) override;
+
+    void onBinaryMessage(const uint8_t *data, size_t len);
 
     // Data structures
     struct ConnectionInfo {

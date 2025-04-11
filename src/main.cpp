@@ -208,7 +208,7 @@ RealTimeClient* oai_get_client(void) {
 }
 
 void timerHandler(void) {
-    std::string text = "What can you do?";
+    std::string text = "猛犸象是如何灭绝的？";
     client->createConversationitem(text);
     client->createResponse();
 }
@@ -340,16 +340,19 @@ int main(int argc, char* argv[]) {
     if (websocket_mode) {
         client = new WebSocketClient();
         sample_rate = 24000;
+        oai_init_audio_alsa(sample_rate);
+        oai_init_audio_decoder(sample_rate);
     } else if (custom_websocket_mode) {
         client = new CustomWebSocketClient();
-        sample_rate = 24000;
     } else {  // webrtc_mode
         client = new WebRTCClient();
         sample_rate = 8000;
+        oai_init_audio_alsa(sample_rate);
+        oai_init_audio_decoder(sample_rate);
     }
 
     ThreadTimer timer;
-    timer.set(5, timerHandler);
+    timer.set(3, timerHandler);
     timer.start();
     #if defined(__arm__)
     std::thread file_monitor(monitorFileChanges);
@@ -366,8 +369,6 @@ int main(int argc, char* argv[]) {
     }
     #endif
 
-    oai_init_audio_alsa(sample_rate);
-    oai_init_audio_decoder(sample_rate);
     client->init();
     client->loop();
     std::cout << "exit..." << std::endl;
