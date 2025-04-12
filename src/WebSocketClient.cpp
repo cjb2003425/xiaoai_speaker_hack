@@ -339,6 +339,7 @@ WebSocketClient::WebSocketClient() {
     // Start audio processing thread
     audioThreadRunning = true;
     responseDone = false;
+    audioBufferSize = 0;
     setListeningPort(PORT);
     audioThread = std::thread(&WebSocketClient::audioProcessingThread, this);
 }
@@ -439,6 +440,7 @@ void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) 
     {
         std::lock_guard<std::mutex> lock(audioMutex);
         deltaQueue.push(delta);
+        audioBufferSize += delta->audio.size();
     }
     audioCondVar.notify_one();
     responseDone = false;
@@ -461,7 +463,7 @@ void WebSocketClient::audioProcessingThread() {
                 }
 
                 if (!responseDone) {
-                    if (deltaQueue.size() > MAX_BUFF_DELTA) {
+                    if (audioBufferSize > MAX_BUFF_DELTA) {
                         return true;
                     }
                 } else {
@@ -481,6 +483,7 @@ void WebSocketClient::audioProcessingThread() {
                 buffer = &delta->audio;
             }
             deltaQueue.pop();
+            audioBufferSize -= delta->audio.size();
         }
         
         if (buffer->size() > 0 && !wakeupOn) {
@@ -490,8 +493,6 @@ void WebSocketClient::audioProcessingThread() {
             } else {
                 oai_audio_write(buffer->get(), buffer->size() / 2);
                 // Write the raw audio data directly
-                std::cout << "write raw audio" << std::endl;
-
             }
         }
     }
@@ -514,6 +515,7 @@ void WebSocketClient::clearOutputBuffer() {
     while (!deltaQueue.empty()) {
         deltaQueue.pop();
     }
+    audioBufferSize = 0;
 }
 
 void WebSocketClient::onClientEstablished()

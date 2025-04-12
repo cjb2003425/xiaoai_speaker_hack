@@ -14,7 +14,7 @@
 
 #define OPUS_ENCODER_BITRATE 30000
 #define OPUS_ENCODER_COMPLEXITY 0
-#define VOLUME_GAIN 1.4f  // Define a gain factor to increase the volume
+#define VOLUME_GAIN 1.5f  // Define a gain factor to increase the volume
 #define BUFFER_TIME 1000000   // Increase to 1000ms buffer
 #define PERIOD_TIME 20000    // Decrease to 20ms period for more frequent updates
 #define START_THRESHOLD 0.6   

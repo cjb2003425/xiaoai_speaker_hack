@@ -89,14 +89,19 @@ void CustomWebSocketClient::onMessage(std::string& message) {
         json eventJson = json::parse(message);
         eventType = eventJson["type"];
 
-        //std::cout << "[" << std::put_time(std::localtime(&t_c), "%Y-%m-%d %H:%M:%S") << "] receive: " << message << std::endl;
+        //std::cout << "[" << std::put_time(std::localtime(&t_c), "%H:%M:%S") << "] receive: " << message << std::endl;
         if (eventType == "hello") {
             session_id = eventJson["session_id"];
             sample_rate = eventJson["audio_params"]["sample_rate"];
             frame_duration = eventJson["audio_params"]["frame_duration"];
             initMediaPlayback();
         } else if (eventType == "tts") {
-            std::cout << "text: " << eventJson["text"] << std::endl;
+            if (eventJson["state"] == "sentence_start") {
+                std::cout << "[" << std::put_time(std::localtime(&t_c), "%H:%M:%S")  << "] text: " << eventJson["text"] << std::endl;
+            } else if (eventJson["state"] == "sentence_end") {
+                std::cout << "end of sequence" << std::endl;
+                onAudioDone(std::make_shared<ItemType>());
+            } 
         }
 
     } catch (json::parse_error& e) {
