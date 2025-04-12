@@ -14,7 +14,7 @@
 
 #define OPUS_ENCODER_BITRATE 30000
 #define OPUS_ENCODER_COMPLEXITY 0
-#define VOLUME_GAIN 1.2f  // Define a gain factor to increase the volume
+#define VOLUME_GAIN 1.4f  // Define a gain factor to increase the volume
 #define BUFFER_TIME 1000000   // Increase to 1000ms buffer
 #define PERIOD_TIME 20000    // Decrease to 20ms period for more frequent updates
 #define START_THRESHOLD 0.6   
@@ -163,8 +163,6 @@ void oai_audio_decode(uint8_t *data, size_t size) {
     // Increase buffer size to handle larger Opus frames
     ssize_t res = 0;
     size_t offset = 0;
-    
-    fprintf(stderr, "oai_audio_decode: total size %zu\n", size);
     
     if (!data || !output_buffer) {
         fprintf(stderr, "Invalid data or buffer in oai_audio_decode\n");

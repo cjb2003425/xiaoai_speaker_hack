@@ -35,7 +35,7 @@ public:
 private:
     static constexpr int PORT = 443;
     static constexpr int BACKOFF_MS_NUM = 5;
-    static constexpr int MAX_BUFF_DELTA = 0;
+    static constexpr int MAX_BUFF_DELTA = 1;
     static constexpr int ssl_connection = LCCSCF_USE_SSL;
     // Private methods
     static int callback(struct lws *wsi, enum lws_callback_reasons reason,

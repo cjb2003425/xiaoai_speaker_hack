@@ -85,7 +85,7 @@ void parseFileContent(const std::string& file_name) {
         }
     } catch (json::parse_error& e) {
         //ignore
-        cerr << "JSON parse error: " << e.what() << std::endl;
+        cerr << "[Dialog]JSON parse error: " << e.what() << std::endl;
     }
 }
 

@@ -1,5 +1,7 @@
-#include "CustomWebSocketClient.h"
+#include <chrono>
+#include <iomanip>  // Add this line
 #include "Utils.h"
+#include "CustomWebSocketClient.h"
 #include "main.h"
 
 CustomWebSocketClient::CustomWebSocketClient() : WebSocketClient() {
@@ -9,9 +11,20 @@ CustomWebSocketClient::CustomWebSocketClient() : WebSocketClient() {
 
 void CustomWebSocketClient::createConversationitem(std::string &message)
 {
-    std::string json = "{\"session_id\":\"" + session_id + 
-        "\",\"type\":\"listen\",\"state\":\"detect\",\"text\":\"" + message + "\"}";
-    sendMessage(json);
+    std::string jsonMessage = R"(
+    {
+        "type": "listen",
+        "state": "detect"
+    })";
+
+    try {
+        json item = json::parse(jsonMessage);
+        item["session_id"] = session_id;
+        item["text"] = message;
+        sendMessage(item.dump());
+    } catch (const json::parse_error& e) {
+        std::cout << "Failed to parse conversation item JSON: " + std::string(e.what());
+    }
 }
 
 void CustomWebSocketClient::createResponse()
@@ -20,6 +33,20 @@ void CustomWebSocketClient::createResponse()
 
 void CustomWebSocketClient::cancelAssistantSpeech()
 {
+    std::string jsonMessage = R"(
+    {
+        "type": "abort",
+        "reason": "wake_word_detected"
+    })";
+
+    try {
+        json item = json::parse(jsonMessage);
+        item["session_id"] = session_id;
+        sendMessage(item.dump());
+    } catch (const json::parse_error& e) {
+        std::cout << "Failed to parse conversation item JSON: " + std::string(e.what());
+    }
+    clearOutputBuffer();
 }
 
 void CustomWebSocketClient::sendHelloMessage()
@@ -56,18 +83,20 @@ void CustomWebSocketClient::initMediaPlayback()
 void CustomWebSocketClient::onMessage(std::string& message) {
     try {
         std::string eventType;
+        auto now = std::chrono::system_clock::now();
+        auto t_c = std::chrono::system_clock::to_time_t(now);
         // Parse the JSON message
         json eventJson = json::parse(message);
         eventType = eventJson["type"];
 
-        std::cout << "receive: " << message << std::endl;
+        //std::cout << "[" << std::put_time(std::localtime(&t_c), "%Y-%m-%d %H:%M:%S") << "] receive: " << message << std::endl;
         if (eventType == "hello") {
             session_id = eventJson["session_id"];
             sample_rate = eventJson["audio_params"]["sample_rate"];
             frame_duration = eventJson["audio_params"]["frame_duration"];
             initMediaPlayback();
-        } else if (eventType == "event") {
-            std::cout << "status: " << eventJson["status"] << std::endl;
+        } else if (eventType == "tts") {
+            std::cout << "text: " << eventJson["text"] << std::endl;
         }
 
     } catch (json::parse_error& e) {

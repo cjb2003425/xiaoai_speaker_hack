@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sstream>
 #include <fstream>
+#include <chrono>
 #include "Utils.h"
 #include "WebSocketClient.h"
 #include "main.h"
@@ -356,7 +357,12 @@ WebSocketClient::~WebSocketClient() {
 }
 
 bool WebSocketClient::sendMessage(const std::string& message) {
-    std::cout << "send:" << message << std::endl;
+    auto now = std::chrono::system_clock::now();
+    auto t_c = std::chrono::system_clock::to_time_t(now);
+    
+    std::cout << "[" << std::put_time(std::localtime(&t_c), "%Y-%m-%d %H:%M:%S") 
+              << "] send: " << message << std::endl;
+    
     size_t len = message.length() + 1;
     struct msg amsg;
     int index = 1;
@@ -397,14 +403,15 @@ bool WebSocketClient::sendMessage(const std::string& message) {
 }
 
 void WebSocketClient::onMessage(std::string& message) {
-    //std::cout << message << std::endl;
     RealTimeClient::onMessage(message);
 }
 
 void WebSocketClient::onBinaryMessage(const uint8_t* data, size_t len) {
-    auto deltaPart = std::make_shared<ItemContentDeltaType>();
-    deltaPart->audio.append(data, len);
-    onAudioDelta(deltaPart);
+    if (!wakeupOn) {
+        auto deltaPart = std::make_shared<ItemContentDeltaType>();
+        deltaPart->audio.append(data, len);
+        onAudioDelta(deltaPart);
+    }
 }
 
 void WebSocketClient::onAudioDelta(std::shared_ptr<ItemContentDeltaType> delta) {
