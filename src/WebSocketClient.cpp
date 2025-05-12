@@ -126,6 +126,8 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
                 if (openBraces > 0 && openBraces == closeBraces) {
                     client->onMessage(client->recvmsg); // Process the complete message
                     client->recvmsg.clear(); // Clear the buffer for the next message
+                } else {
+                    lwsl_info("Received: %s \n", in);
                 }
             }
         }
@@ -170,6 +172,10 @@ skip:
         con->established = 0;
         client->conversation.clear();
         goto do_retry;
+
+    case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE:
+        lwsl_info("peer initiated close\n");
+        break;
 
     case LWS_CALLBACK_EVENT_WAIT_CANCELLED:
         lwsl_info("event wait canclelled\n");

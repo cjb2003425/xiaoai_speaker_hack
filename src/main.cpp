@@ -352,8 +352,8 @@ int main(int argc, char* argv[]) {
     }
 
     ThreadTimer timer;
-    timer.set(3, timerHandler);
-    timer.start();
+    //timer.set(3, timerHandler);
+    //timer.start();
     #if defined(__arm__)
     std::thread file_monitor(monitorFileChanges);
     std::thread ubus_monitor(ubus_monitor_fun);
