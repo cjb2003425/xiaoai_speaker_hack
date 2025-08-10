@@ -339,7 +339,7 @@ int main(int argc, char* argv[]) {
 
     if (websocket_mode) {
         client = new WebSocketClient();
-        sample_rate = 24000;
+        sample_rate = 16000;
         oai_init_audio_alsa(sample_rate);
         oai_init_audio_decoder(sample_rate);
     } else if (custom_websocket_mode) {

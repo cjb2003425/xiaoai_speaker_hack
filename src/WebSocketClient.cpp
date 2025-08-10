@@ -134,7 +134,8 @@ int WebSocketClient::callback(struct lws *wsi, enum lws_callback_reasons reason,
         break;
     case LWS_CALLBACK_CLIENT_ESTABLISHED:
         con->established = 1;
-        lwsl_user("%s: established\n", __func__);
+        client->onClientEstablished();
+        lwsl_info("%s: established\n", __func__);
         break;
 
     case LWS_CALLBACK_CLIENT_WRITEABLE:
