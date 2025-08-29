@@ -29,6 +29,7 @@ void CustomWebSocketClient::createConversationitem(std::string &message)
 
 void CustomWebSocketClient::createResponse()
 {
+    wakeupOn = false;
 }
 
 void CustomWebSocketClient::cancelAssistantSpeech()

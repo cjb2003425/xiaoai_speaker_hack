@@ -416,6 +416,7 @@ void WebSocketClient::onMessage(std::string& message) {
 
 void WebSocketClient::onBinaryMessage(const uint8_t* data, size_t len) {
     if (!wakeupOn) {
+        //std::cout << "received: " << len << std::endl;
         auto deltaPart = std::make_shared<ItemContentDeltaType>();
         deltaPart->audio.append(data, len);
         onAudioDelta(deltaPart);

@@ -107,7 +107,7 @@ void RealTimeClient::createConversationitem(std::string& message) {
     }
 }
 
-void RealTimeClient::createResponse() {
+void RealTimeClient::c`eateResponse() {
     sendMessage(RESPONSE_CREATE_TEMPLATE);
     wakeupOn = false;
 }

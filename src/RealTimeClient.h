@@ -2,6 +2,7 @@
 #define REALTIMECLIENT_H
 
 #include <string>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include "Conversation.h"
 
@@ -34,7 +35,10 @@ public:
     void setWakeupOn(bool wakeup) {
         wakeupOn = wakeup;
         if (wakeup) {
+            std::cout << "wakeup on" << std::endl;
             cancelAssistantSpeech();
+        } else {
+            std::cout << "wakeup off" << std::endl;
         }
     };
     void clear() {
